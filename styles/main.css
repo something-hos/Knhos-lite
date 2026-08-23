@@ -1,1 +1,566 @@
+/* ==========================================================
+   KNHOS Lite — main stylesheet
+   Clean, minimalist, touch-friendly. iPad-first, portrait +
+   landscape responsive. No unnecessary animation.
+   ========================================================== */
 
+:root {
+  --color-bg: #f6f7f5;
+  --color-surface: #ffffff;
+  --color-border: #dde2df;
+  --color-text: #1c2521;
+  --color-text-muted: #5b675f;
+  --color-primary: #1f4d43;
+  --color-primary-dark: #143530;
+  --color-primary-tint: #e7efec;
+  --color-warn-bg: #fdf3e3;
+  --color-warn-border: #e6b854;
+  --color-warn-text: #6b4c05;
+  --color-danger: #a3352a;
+  --radius: 10px;
+  --touch-min: 48px;
+  --shadow-sm: 0 1px 2px rgba(20, 30, 25, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 30, 25, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+#app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------- Header / Nav ---------------- */
+
+#app-header {
+  background: var(--color-primary);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: env(safe-area-inset-top);
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 1.08rem;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.78;
+}
+
+#main-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 11px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: var(--touch-min);
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.nav-btn:hover,
+.nav-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.nav-btn.active {
+  background: #fff;
+  color: var(--color-primary-dark);
+  border-color: #fff;
+}
+
+.nav-btn-backup {
+  background: #c98a2b;
+  border-color: #c98a2b;
+  font-weight: 600;
+}
+
+.nav-btn-backup:hover,
+.nav-btn-backup:focus-visible {
+  background: #b87b21;
+}
+
+/* ---------------- Main content ---------------- */
+
+#app-main {
+  flex: 1;
+  padding: 28px 20px 60px;
+}
+
+#view-root {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.view-header {
+  margin-bottom: 22px;
+}
+
+.view-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.view-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.98rem;
+}
+
+/* ---------------- Cards / surfaces ---------------- */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card + .card {
+  margin-top: 18px;
+}
+
+/* ---------------- Home screen ---------------- */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.home-tile {
+  display: block;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  min-height: 110px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.home-tile:hover,
+.home-tile:focus-visible {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.home-tile-icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.home-tile-title {
+  font-weight: 700;
+  font-size: 1.08rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.home-tile-desc {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.home-tile-backup {
+  border-color: #e6c98c;
+  background: var(--color-warn-bg);
+}
+
+.home-tile-backup .home-tile-title {
+  color: #7a520c;
+}
+
+.backup-status-line {
+  margin-top: 8px;
+  font-size: 0.88rem;
+  color: var(--color-warn-text);
+  font-weight: 600;
+}
+
+/* ---------------- Forms ---------------- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.field .required-mark {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: var(--touch-min);
+  background: #fff;
+  color: var(--color-text);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.field-hint {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.form-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Buttons ---------------- */
+
+.btn {
+  min-height: var(--touch-min);
+  padding: 12px 22px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+}
+
+.btn:hover,
+.btn:focus-visible {
+  filter: brightness(0.97);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background: #fff;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.btn-danger {
+  background: #fff;
+  color: var(--color-danger);
+  border-color: #e6bcb5;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---------------- Alerts / duplicate warning ---------------- */
+
+.alert {
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--color-border);
+}
+
+.alert-warn {
+  background: var(--color-warn-bg);
+  border-color: var(--color-warn-border);
+  color: var(--color-warn-text);
+}
+
+.alert-error {
+  background: #fbeae7;
+  border-color: #e3a99e;
+  color: var(--color-danger);
+}
+
+.alert-success {
+  background: #e8f3ee;
+  border-color: #9dc9b4;
+  color: #1f5d40;
+}
+
+.alert h3 {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+}
+
+.alert p {
+  margin: 0 0 4px;
+}
+
+.alert-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Patient list / search results ---------------- */
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-bar input {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-height: var(--touch-min);
+}
+
+.patient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.patient-row {
+  width: 100%;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.patient-row:hover,
+.patient-row:focus-visible {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.patient-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.patient-row-name {
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+
+.patient-row-id {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.patient-row-meta {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* ---------------- Patient profile ---------------- */
+
+.profile-id-badge {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.profile-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.profile-field-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: 3px;
+}
+
+.profile-field-value {
+  font-size: 1.02rem;
+  font-weight: 500;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.notice-inline {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 0.92rem;
+}
+
+/* ---------------- Backup screen ---------------- */
+
+.backup-detail-list {
+  margin: 18px 0 0;
+  padding-left: 20px;
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+  line-height: 1.7;
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 640px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #main-nav {
+    justify-content: space-between;
+  }
+  .nav-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 11px 8px;
+  }
+  #app-main {
+    padding: 20px 14px 50px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #app-main {
+    padding-top: 18px;
+  }
+}
