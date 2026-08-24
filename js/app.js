@@ -392,14 +392,17 @@ function renderBackup() {
    ROUTES
    ========================================================== */
 
+/* ==========================================================
+   ROUTES
+   ========================================================== */
+
 window.KnhosRouter.registerRoute('#/home', renderHome);
 window.KnhosRouter.registerRoute('#/patients/new', () => renderNewPatient(pendingRegistration));
 window.KnhosRouter.registerRoute('#/patients', () => renderPatientsListOrSearch('#/patients', 'Patients', 'All registered patients.', ''));
 window.KnhosRouter.registerRoute('#/search', () => renderPatientsListOrSearch('#/search', 'Search', 'Find a patient by ID, name, or phone number.', ''));
 window.KnhosRouter.registerRoute('#/backup', renderBackup);
-window.KnhosRouter.registerRoute('#/patients/:id', (params) => {
-  const url = new URL(window.location.href);
-  const justCreated = url.hash.includes('created=1');
+window.KnhosRouter.registerRoute('#/patients/:id', (params, query) => {
+  const justCreated = query.get('created') === '1';
   renderPatientProfile(params.id, justCreated);
 });
 
