@@ -2,10 +2,9 @@
  * service-worker.js
  * Caches the application shell (HTML/CSS/JS/manifest/icons) so KNHOS Lite
  * loads and runs with no network connection after the first visit.
- * All patient data lives in IndexedDB, never in this cache.
  */
 
-const CACHE_VERSION = 'knhos-lite-shell-v6';
+const CACHE_VERSION = 'knhos-lite-shell-v3';
 
 const SHELL_FILES = [
   './',
