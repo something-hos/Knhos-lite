@@ -2,7 +2,7 @@
  * app.js
  * Step 1: Context-Aware Navigation (Bulletproof Version)
  */
-
+ 
 (function () {
 'use strict';
 
