@@ -25,9 +25,6 @@
         </span>
       </button>
       
-      <!-- STEP 1: The dynamic waiting room & active patient tracker -->
-      <div id="dynamic-context-bar" class="context-bar"></div>
-
       <nav id="main-nav" aria-label="Main navigation">
         <button class="nav-btn" data-route="#/home">Home</button>
         <button class="nav-btn" data-route="#/patients">Patients</button>
@@ -36,6 +33,9 @@
         <button class="nav-btn nav-btn-backup" data-route="#/backup">Backup / Export</button>
       </nav>
     </div>
+    
+    <!-- FIX: Moved to its own dedicated sub-bar to prevent button overlapping -->
+    <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
   </header>
 
   <main id="app-main">
