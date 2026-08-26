@@ -1,7 +1,7 @@
 /**
  * app.js
  * Step 1: Context-Aware Navigation & Waiting Room Queue
- */
+ */ 
 
 (function () {
 'use strict';
