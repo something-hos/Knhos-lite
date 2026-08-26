@@ -1,6 +1,6 @@
 /**
  * app.js
- * Step 1: Context-Aware Navigation (Bulletproof Version)
+ * Step 1: Contex-Aware Navigation (Bulletproof Version)
  */
  
 (function () {
