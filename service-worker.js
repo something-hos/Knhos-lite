@@ -1,10 +1,9 @@
 /**
  * service-worker.js
- * Caches the application shell (HTML/CSS/JS/manifest/icons) so KNHOS Lite
- * loads and runs with no network connection after the first visit.
+ * Phase 4 Upgrade - Ultimate Dental
  */
 
-const CACHE_VERSION = 'knhos-lite-shell-v4';
+const CACHE_VERSION = 'knhos-lite-shell-v6';
 
 const SHELL_FILES = [
   './',
