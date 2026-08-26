@@ -1,7 +1,7 @@
 /**
  * service-worker.js
  * Step 1 Navigation Upgrade
- */
+ */ 
 
 const CACHE_VERSION = 'knhos-lite-shell-v8';
 
