@@ -605,6 +605,29 @@ button, input, select, textarea {
   line-height: 1.7;
 }
 
+/* ---------------- Phase 3: Consent & Signature UI ---------------- */
+.signature-container {
+  border: 2px dashed #1f4d43;
+  border-radius: 8px;
+  background: #ffffff;
+  margin-bottom: 1rem;
+  touch-action: none; 
+  overflow: hidden;
+}
+
+#signature-pad {
+  width: 100%;
+  height: 250px;
+  display: block;
+  cursor: crosshair;
+}
+
+.consent-card {
+  background: #fff;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
 /* ---------------- Responsive ---------------- */
 
 @media (max-width: 640px) {
