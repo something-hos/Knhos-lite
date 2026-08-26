@@ -5,7 +5,7 @@
  * All patient data lives in IndexedDB, never in this cache.
  */
 
-const CACHE_VERSION = 'knhos-lite-shell-v5';
+const CACHE_VERSION = 'knhos-lite-shell-v6';
 
 const SHELL_FILES = [
   './',
