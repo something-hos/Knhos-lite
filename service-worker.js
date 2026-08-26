@@ -4,7 +4,7 @@
  * loads and runs with no network connection after the first visit.
  */
 
-const CACHE_VERSION = 'knhos-lite-shell-v3';
+const CACHE_VERSION = 'knhos-lite-shell-v4';
 
 const SHELL_FILES = [
   './',
