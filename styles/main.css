@@ -1,7 +1,7 @@
 /* ==========================================================
    KNHOS Lite — main stylesheet
    Clean, minimalist, touch-friendly. iPad-first, portrait +
-   landscape responsive. No unnecessary animation.  
+   landscape responsive. No unnecessary animation.
    ========================================================== */
 
 :root {
@@ -529,7 +529,7 @@ button, input, select, textarea {
   font-size: 0.92rem;
 }
 
-/* ---------------- Visit history (patient profile) ---------------- */
+/* ---------------- Visit history ---------------- */
 
 .visit-list {
   list-style: none;
@@ -605,14 +605,16 @@ button, input, select, textarea {
   line-height: 1.7;
 }
 
-/* ---------------- Phase 3: Consent & Signature UI ---------------- */
+/* ---------------- Consents & E-Signature ---------------- */
+
 .signature-container {
-  border: 2px dashed #1f4d43;
-  border-radius: 8px;
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius);
   background: #ffffff;
-  margin-bottom: 1rem;
-  touch-action: none; 
+  margin: 8px 0 16px;
+  touch-action: none; /* Crucial to prevent iPad scrolling during signature */
   overflow: hidden;
+  width: 100%;
 }
 
 #signature-pad {
@@ -623,9 +625,20 @@ button, input, select, textarea {
 }
 
 .consent-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
   background: #fff;
-  border-radius: 8px;
+}
+
+.consent-sig-img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
   margin-top: 10px;
+  background: #fff;
+  border-radius: 4px;
 }
 
 /* ---------------- Responsive ---------------- */
