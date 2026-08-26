@@ -1,6 +1,6 @@
 /**
  * app.js
- * Step 1: Context-Aware Navigation & Waiting Room  Queue
+ * Step 1: Context-Aware Navigation & Waiting Room Queue
  */
 
 (function () {
