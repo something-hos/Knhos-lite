@@ -30,16 +30,32 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 /* Header / Nav */
 #app-header { background: var(--color-primary); color: #fff; position: sticky; top: 0; z-index: 10; padding-top: env(safe-area-inset-top); }
-.header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header-inner { max-width: 1400px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; background: none; border: none; color: #fff; cursor: pointer; padding: 4px; }
 .brand-mark { width: 40px; height: 40px; border-radius: 9px; background: rgba(255, 255, 255, 0.14); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; }
 .brand-text { display: flex; flex-direction: column; align-items: flex-start; }
 .brand-title { font-weight: 700; font-size: 1.08rem; }
 .brand-subtitle { font-size: 0.75rem; opacity: 0.78; }
+
 #main-nav { display: flex; gap: 8px; flex-wrap: wrap; }
 .nav-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; padding: 11px 16px; border-radius: 8px; cursor: pointer; min-height: var(--touch-min); font-weight: 500; transition: background 0.15s ease; }
 .nav-btn.active { background: #fff; color: var(--color-primary-dark); border-color: #fff; }
 .nav-btn-backup { background: #c98a2b; border-color: #c98a2b; font-weight: 600; }
+
+/* STEP 1: Context Bar (Waiting Room & Active Chair) */
+.context-bar { display: flex; gap: 12px; align-items: center; flex: 1; justify-content: center; }
+.context-btn { display: flex; align-items: center; gap: 8px; border: none; border-radius: 20px; padding: 8px 18px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: transform 0.15s; }
+.context-btn:hover { transform: scale(1.02); }
+.btn-waiting { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; box-shadow: 0 2px 8px rgba(230, 81, 0, 0.2); }
+.btn-waiting .badge { background: #e65100; color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 0.85rem; }
+.btn-waiting-empty { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); }
+.btn-active-patient { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; animation: pulse 2s infinite; }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
 
 /* Main content & Cards */
 #app-main { flex: 1; padding: 28px 20px 60px; }
@@ -70,7 +86,6 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .btn { min-height: var(--touch-min); padding: 12px 22px; border-radius: 8px; border: 1px solid transparent; font-weight: 600; cursor: pointer; background: var(--color-primary-tint); color: var(--color-primary-dark); }
 .btn-primary { background: var(--color-primary); color: #fff; }
 .btn-secondary { background: #fff; border-color: var(--color-border); color: var(--color-text); }
-.btn-danger { background: #fff; color: var(--color-danger); border-color: #e6bcb5; }
 .btn-sm { min-height: 36px; padding: 6px 14px; font-size: 0.9rem; }
 
 /* Alerts & Lists */
@@ -79,13 +94,12 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .alert-error { background: #fbeae7; border-color: #e3a99e; color: var(--color-danger); }
 .alert-success { background: #e8f3ee; border-color: #9dc9b4; color: #1f5d40; }
 .alert h3 { margin: 0 0 6px; font-size: 1.02rem; }
-.alert p { margin: 0 0 4px; }
 .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
 .search-bar input { flex: 1; border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 16px; }
 .patient-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.patient-row { width: 100%; text-align: left; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px 18px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.patient-row-name { font-weight: 700; font-size: 1.02rem; }
-.patient-row-id { font-size: 0.85rem; color: var(--color-text-muted); font-family: monospace; }
+.patient-row { width: 100%; text-align: left; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.patient-row-name { font-weight: 700; font-size: 1.02rem; display: block; }
+.patient-row-id { font-size: 0.85rem; color: var(--color-text-muted); font-family: monospace; display: block; margin-top: 4px; }
 .empty-state { text-align: center; padding: 50px 20px; color: var(--color-text-muted); }
 
 /* Profile & History */
@@ -102,6 +116,7 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .visit-id { font-family: monospace; font-weight: 700; font-size: 0.95rem; color: var(--color-primary-dark); }
 .visit-dept-badge { background: var(--color-primary-tint); color: var(--color-primary-dark); padding: 2px 9px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
 .visit-datetime { margin-top: 4px; font-size: 0.88rem; color: var(--color-text-muted); }
+.visit-status-badge { margin-left: 8px; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
 
 /* Canvas & Signature */
 .signature-container { border: 2px dashed var(--color-primary); border-radius: var(--radius); background: #ffffff; margin: 8px 0 16px; touch-action: none; overflow: hidden; width: 100%; }
@@ -109,67 +124,10 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .consent-card { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; background: #fff; }
 .consent-sig-img { max-width: 100%; height: auto; border: 1px solid var(--color-border); margin-top: 10px; border-radius: 4px; }
 
-/* Clinical Section & Tables */
-.clinical-section { padding: 16px; background: #fdfdfc; border: 1px solid #e2e8e5; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid var(--color-primary); }
-.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; background:#fff; border-radius:8px; overflow:hidden; border: 1px solid var(--color-border); }
-.data-table th, .data-table td { border-bottom: 1px solid var(--color-border); padding: 12px; text-align: left; font-size: 0.9rem; }
-.data-table th { background: var(--color-primary-tint); color: var(--color-primary-dark); font-weight:700; }
-.data-table tr:last-child td { border-bottom: none; }
-.total-row { font-weight: 700; background: #f6f7f5; font-size: 1rem !important; }
-
-/* --- PREMIUM ODONTOGRAM --- */
-.odontogram { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; padding: 16px; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-.arch-row { display: flex; justify-content: center; width: 100%; }
-.arch-half { display: flex; gap: 6px; padding: 0 10px; }
-.arch-left { border-right: 2px solid var(--color-border); }
-.tooth { width: 36px; height: 48px; border: 2px solid #dde2df; border-radius: 14px 14px 20px 20px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; cursor: pointer; background: #fff; color: var(--color-text); transition: all 0.15s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.tooth:hover { border-color: var(--color-primary); transform: translateY(-2px); }
-.tooth.decayed { background: #ffebee; border-color: #ef5350; color: #c62828; }
-.tooth.filled { background: #e3f2fd; border-color: #42a5f5; color: #1565c0; }
-.tooth.missing { background: #f5f5f5; border-color: #9e9e9e; color: #616161; text-decoration: line-through; opacity: 0.6; }
-.tooth.planned { background: #fff3e0; border-color: #ff9800; color: #ef6c00; }
-
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-.modal-content { background: #fff; padding: 24px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
-
-/* --- PREMIUM PRINT LAYOUTS --- */
-.print-container { display: none; }
-@media print {
-  /* Hide the entire app UI */
-  #app-shell { display: none !important; }
-  body { background: white; margin: 0; padding: 0; }
-  
-  /* Show only the active print container */
-  body.printing-rx #print-rx-area { display: block !important; position: absolute; top:0; left:0; width:100%; padding: 30px; }
-  body.printing-inv #print-inv-area { display: block !important; position: absolute; top:0; left:0; width:100%; padding: 30px; }
-  
-  .print-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--color-primary); padding-bottom: 15px; margin-bottom: 25px; }
-  .print-header-brand h1 { margin: 0; font-size: 26px; color: var(--color-primary); }
-  .print-header-brand p { margin: 4px 0 0; font-size: 14px; color: #555; }
-  .print-header-doc { text-align: right; }
-  .print-header-doc h2 { margin: 0; font-size: 18px; }
-  .print-header-doc p { margin: 4px 0 0; font-size: 14px; color: #555; }
-  
-  .print-patient-box { border: 1px solid #ccc; border-radius: 8px; padding: 15px; display: flex; justify-content: space-between; margin-bottom: 30px; background: #fdfdfc; }
-  .print-patient-box div { font-size: 14px; line-height: 1.6; }
-  
-  .rx-watermark { font-size: 32px; font-weight: bold; margin-bottom: 15px; font-style: italic; }
-  
-  .print-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-  .print-table th, .print-table td { border-bottom: 1px solid #ddd; padding: 12px 8px; text-align: left; font-size: 15px; }
-  .print-table th { font-weight: bold; color: #333; border-bottom: 2px solid #aaa; }
-  
-  .print-footer { position: fixed; bottom: 30px; width: calc(100% - 60px); display: flex; justify-content: space-between; align-items: flex-end; }
-  .print-footer-address { font-size: 12px; color: #777; width: 60%; }
-  .print-signature { text-align: center; width: 250px; }
-  .print-signature-line { border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px; }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .header-inner { flex-direction: column; align-items: stretch; }
+  .context-bar { margin: 12px 0; justify-content: center; width: 100%; }
   #main-nav { justify-content: space-between; }
   .nav-btn { flex: 1 1 auto; text-align: center; padding: 11px 8px; }
   #app-main { padding: 20px 14px 50px; }
-  .arch-half { gap: 2px; padding: 0 4px; }
-  .tooth { width: 28px; height: 40px; font-size: 0.8rem; border-radius: 10px 10px 14px 14px; }
 }
