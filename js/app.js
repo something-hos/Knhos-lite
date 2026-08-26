@@ -1,8 +1,7 @@
 /**
  * app.js
- * Stage 1: view rendering + wiring for Home, New Patient (with duplicate
- * warning), Patients list, Search, Patient profile, and a Backup/Export
- * stub screen (ZIP packaging itself is a later stage).
+ * Stage 3: view rendering + wiring for Home, New Patient, Patients list, 
+ * Search, Patient profile, Visits, and E-Signature Consents.
  */
 
 (function () {
@@ -43,7 +42,7 @@ function setView(html) {
   window.scrollTo(0, 0);
 }
 
-/* ---------------- Backup status (metadata only, not patient data) ---------------- */
+/* ---------------- Backup status ---------------- */
 
 const LAST_BACKUP_KEY = 'knhos_last_backup_iso';
 
@@ -94,10 +93,10 @@ function renderHome() {
 }
 
 /* ==========================================================
-   NEW PATIENT (with duplicate detection)
+   NEW PATIENT
    ========================================================== */
 
-let pendingRegistration = null; // holds form data while a duplicate warning is shown
+let pendingRegistration = null; 
 
 function renderNewPatient(prefill, duplicateWarningHtml) {
   setActiveNav('#/patients/new');
@@ -231,7 +230,7 @@ async function finalizeRegistration(data) {
 }
 
 /* ==========================================================
-   PATIENTS LIST / SEARCH (shared implementation)
+   PATIENTS LIST / SEARCH 
    ========================================================== */
 
 function renderPatientRow(p) {
@@ -295,11 +294,6 @@ async function renderPatientsListOrSearch(routeHash, heading, subheading, initia
    PATIENT PROFILE
    ========================================================== */
 
-/**
- * Render the visit-history list for a patient profile (Stage 2B).
- * Visits are expected already sorted newest-first by the caller
- * (window.KnhosVisits.listVisitsForPatient does this).
- */
 function renderVisitHistory(visits) {
   if (!visits || visits.length === 0) {
     return '<div class="notice-inline">No visits recorded yet.</div>';
@@ -330,7 +324,28 @@ function renderVisitHistory(visits) {
   return `<ul class="visit-list">${items}</ul>`;
 }
 
-async function renderPatientProfile(patientId, justCreated, justVisitCreated) {
+function renderConsentHistory(consents) {
+  if (!consents || consents.length === 0) {
+    return '<div class="notice-inline" style="margin-top: 10px;">No consents recorded yet.</div>';
+  }
+
+  const items = consents.map((c) => `
+    <li class="visit-card">
+      <div class="visit-card-header">
+        <span class="visit-id">${escapeHtml(c.consentId)}</span>
+        <span class="visit-dept-badge" style="background:var(--color-primary-dark); color:#fff;">${escapeHtml(c.type)}</span>
+      </div>
+      <div class="visit-datetime">${formatDateTime(c.createdAt)}</div>
+      <div class="consent-card">
+        <img src="${c.signatureData}" alt="Patient Signature" style="max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 4px;" />
+      </div>
+    </li>
+  `).join('');
+
+  return `<ul class="visit-list">${items}</ul>`;
+}
+
+async function renderPatientProfile(patientId, justCreated, justVisitCreated, justConsentCreated) {
   setActiveNav('__none__');
   const patient = await window.KnhosPatients.getPatient(patientId);
 
@@ -350,9 +365,8 @@ async function renderPatientProfile(patientId, justCreated, justVisitCreated) {
     return;
   }
 
-  // Visits belonging to this patient only, from the existing Stage 2A
-  // visits store (via the patientId index) — newest first.
   const visits = await window.KnhosVisits.listVisitsForPatient(patient.patientId);
+  const consents = await window.KnhosConsents.listConsentsForPatient(patient.patientId);
 
   setView(`
     <div class="view-header">
@@ -369,6 +383,12 @@ async function renderPatientProfile(patientId, justCreated, justVisitCreated) {
       <div class="alert alert-success">
         <h3>Visit saved</h3>
         <p>The new visit has been saved to this iPad.</p>
+      </div>
+    ` : ''}
+    ${justConsentCreated ? `
+      <div class="alert alert-success">
+        <h3>Consent saved</h3>
+        <p>The signed consent form has been securely saved.</p>
       </div>
     ` : ''}
     <div class="card">
@@ -406,15 +426,26 @@ async function renderPatientProfile(patientId, justCreated, justVisitCreated) {
     </div>
     <div class="card">
       <div class="section-title">Visit &amp; Consent History</div>
-      ${renderVisitHistory(visits)}
-      <div class="form-actions" style="margin-top: 14px;">
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
         <button type="button" class="btn btn-primary" id="new-visit-btn">+ New Visit</button>
+        <button type="button" class="btn btn-secondary" id="new-consent-btn">+ New Consent</button>
       </div>
+
+      <h4 style="margin: 0 0 10px; font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase;">Visits</h4>
+      ${renderVisitHistory(visits)}
+
+      <h4 style="margin: 24px 0 10px; font-size: 0.85rem; color: var(--color-text-muted); text-transform: uppercase;">Consents</h4>
+      ${renderConsentHistory(consents)}
     </div>
   `);
 
   document.getElementById('new-visit-btn').addEventListener('click', () => {
     window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}/visits/new`);
+  });
+  
+  document.getElementById('new-consent-btn').addEventListener('click', () => {
+    window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}/consents/new`);
   });
 }
 
@@ -426,13 +457,11 @@ function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-/** Local (device-time) yyyy-mm-dd, suitable for an <input type="date"> default. */
 function todayDateValue() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-/** Local (device-time) HH:MM, suitable for an <input type="time"> default. */
 function nowTimeValue() {
   const d = new Date();
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -442,21 +471,7 @@ async function renderNewVisit(patientId, prefill, errorHtml) {
   setActiveNav('__none__');
   const patient = await window.KnhosPatients.getPatient(patientId);
 
-  if (!patient) {
-    setView(`
-      <div class="alert alert-error">
-        <h3>Patient not found</h3>
-        <p>No patient exists with ID "${escapeHtml(patientId)}". A visit cannot be created.</p>
-        <div class="alert-actions">
-          <button class="btn btn-secondary" id="back-to-patients-btn">Back to Patients</button>
-        </div>
-      </div>
-    `);
-    document.getElementById('back-to-patients-btn').addEventListener('click', () => {
-      window.KnhosRouter.navigate('#/patients');
-    });
-    return;
-  }
+  if (!patient) return renderHome();
 
   const v = prefill || {};
   const department = v.department || '';
@@ -469,19 +484,6 @@ async function renderNewVisit(patientId, prefill, errorHtml) {
       <p>Patient: <strong>${escapeHtml(patient.fullName)}</strong></p>
     </div>
     ${errorHtml || ''}
-    <div class="card">
-      <div class="section-title">Patient</div>
-      <div class="profile-fields">
-        <div>
-          <div class="profile-field-label">Patient Name</div>
-          <div class="profile-field-value">${escapeHtml(patient.fullName)}</div>
-        </div>
-        <div>
-          <div class="profile-field-label">Patient ID</div>
-          <div class="profile-field-value">${escapeHtml(patient.patientId)}</div>
-        </div>
-      </div>
-    </div>
     <div class="card">
       <form id="new-visit-form">
         <div class="form-grid">
@@ -504,12 +506,10 @@ async function renderNewVisit(patientId, prefill, errorHtml) {
           <div class="field" style="grid-column: 1 / -1;">
             <label for="reason">Reason for Visit</label>
             <input type="text" id="reason" name="reason" autocomplete="off" value="${escapeHtml(v.reason)}">
-            <span class="field-hint">Optional</span>
           </div>
           <div class="field" style="grid-column: 1 / -1;">
             <label for="notes">Notes</label>
             <textarea id="notes" name="notes" rows="3">${escapeHtml(v.notes)}</textarea>
-            <span class="field-hint">Optional</span>
           </div>
         </div>
         <div class="form-actions">
@@ -524,7 +524,6 @@ async function renderNewVisit(patientId, prefill, errorHtml) {
     onSubmitNewVisit(event, patientId);
   });
   document.getElementById('cancel-new-visit').addEventListener('click', () => {
-    // Cancel creates nothing and changes nothing in IndexedDB.
     window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}`);
   });
 }
@@ -543,33 +542,163 @@ async function onSubmitNewVisit(event, patientId) {
   event.preventDefault();
   const data = readNewVisitForm();
 
-  if (!data.department || !data.visitDate || !data.visitTime) {
-    renderNewVisit(patientId, data, `
-      <div class="alert alert-error">
-        <h3>Missing required information</h3>
-        <p>Department, Visit Date, and Visit Time are required.</p>
-      </div>
-    `);
-    return;
-  }
+  if (!data.department || !data.visitDate || !data.visitTime) return;
 
   try {
     await window.KnhosVisits.createVisit({ patientId, ...data });
+    window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}?visitCreated=1`);
   } catch (err) {
-    renderNewVisit(patientId, data, `
-      <div class="alert alert-error">
-        <h3>Could not save visit</h3>
-        <p>${escapeHtml(err && err.message)}</p>
-      </div>
-    `);
-    return;
+    alert('Error saving visit: ' + err.message);
   }
-
-  window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}?visitCreated=1`);
 }
 
 /* ==========================================================
-   BACKUP / EXPORT (stub for Stage 1)
+   NEW CONSENT (Stage 3)
+   ========================================================== */
+
+async function renderNewConsent(patientId) {
+  setActiveNav('__none__');
+  const patient = await window.KnhosPatients.getPatient(patientId);
+  
+  if (!patient) return renderHome();
+
+  setView(`
+    <div class="view-header">
+      <h1>New Consent</h1>
+      <p>Patient: <strong>${escapeHtml(patient.fullName)}</strong></p>
+    </div>
+    
+    <div class="card">
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="consent-type">Consent Type</label>
+          <select id="consent-type" class="form-control">
+            <option value="General Medical Consent">General Medical Consent</option>
+            <option value="Dental Procedure Consent">Dental Procedure Consent</option>
+            <option value="Naturopathy Treatment Consent">Naturopathy Treatment Consent</option>
+          </select>
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Patient Signature <span class="required-mark">*</span></label>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0 0 8px 0;">Please sign within the box below.</p>
+          <div class="signature-container">
+            <canvas id="signature-pad"></canvas>
+          </div>
+          <div>
+            <button type="button" class="btn btn-secondary" id="btn-clear-sig">Clear Canvas</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-actions" style="margin-top: 24px;">
+        <button type="button" class="btn btn-primary" id="btn-save-consent">Save Consent</button>
+        <button type="button" class="btn btn-secondary" id="btn-cancel-consent">Cancel</button>
+      </div>
+    </div>
+  `);
+
+  document.getElementById('btn-cancel-consent').addEventListener('click', () => {
+    window.location.hash = `#/patients/${patientId}`;
+  });
+
+  // --- IPAD CANVAS DRAWING LOGIC ---
+  const canvas = document.getElementById('signature-pad');
+  const ctx = canvas.getContext('2d');
+  
+  function resizeCanvas() {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    canvas.width = canvas.offsetWidth * ratio;
+    canvas.height = canvas.offsetHeight * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+  }
+  
+  resizeCanvas();
+  
+  // Resize if iPad rotates
+  window.addEventListener('resize', resizeCanvas);
+
+  let isDrawing = false;
+
+  function getCoordinates(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches && e.touches.length > 0) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function startDrawing(e) {
+    e.preventDefault(); 
+    isDrawing = true;
+    const { x, y } = getCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  function draw(e) {
+    e.preventDefault(); 
+    if (!isDrawing) return;
+    const { x, y } = getCoordinates(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  function stopDrawing(e) {
+    e.preventDefault();
+    isDrawing = false;
+  }
+
+  // Mouse Events
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+
+  // iPad Touch Events
+  canvas.addEventListener('touchstart', startDrawing, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+  document.getElementById('btn-clear-sig').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  });
+
+  document.getElementById('btn-save-consent').addEventListener('click', async () => {
+    const blankCanvas = document.createElement('canvas');
+    blankCanvas.width = canvas.width;
+    blankCanvas.height = canvas.height;
+    
+    if (canvas.toDataURL() === blankCanvas.toDataURL()) {
+      alert("Please provide a signature before saving.");
+      return;
+    }
+
+    const signatureData = canvas.toDataURL('image/png');
+    const type = document.getElementById('consent-type').value;
+
+    try {
+      await window.KnhosConsents.createConsent({
+        patientId,
+        type,
+        text: `I hereby consent to the ${type}.`,
+        signatureData
+      });
+      // Remove resize listener so it doesn't leak memory when leaving the page
+      window.removeEventListener('resize', resizeCanvas); 
+      window.location.hash = `#/patients/${patientId}?consentCreated=1`;
+    } catch (err) {
+      console.error(err);
+      alert('Error saving consent.');
+    }
+  });
+}
+
+/* ==========================================================
+   BACKUP / EXPORT 
    ========================================================== */
 
 function renderBackup() {
@@ -584,15 +713,11 @@ function renderBackup() {
       <div class="section-title">Status</div>
       <p>${lastBackup ? `Last backup: <strong>${formatDate(lastBackup)}</strong>` : 'No backup has been taken yet.'}</p>
       <div class="notice-inline" style="margin-top: 14px;">
-        Export/backup functionality (JSON + signatures package) will be built in a later development stage, after the core patient/visit/consent workflow is complete. This screen is a placeholder so the feature has a permanent, visible home from day one.
+        Export/backup functionality (JSON + signatures package) will be built in a later development stage.
       </div>
     </div>
   `);
 }
-
-/* ==========================================================
-   ROUTES
-   ========================================================== */
 
 /* ==========================================================
    ROUTES
@@ -606,10 +731,14 @@ window.KnhosRouter.registerRoute('#/backup', renderBackup);
 window.KnhosRouter.registerRoute('#/patients/:id/visits/new', (params) => {
   renderNewVisit(params.id);
 });
+window.KnhosRouter.registerRoute('#/patients/:id/consents/new', (params) => {
+  renderNewConsent(params.id);
+});
 window.KnhosRouter.registerRoute('#/patients/:id', (params, query) => {
   const justCreated = query.get('created') === '1';
   const justVisitCreated = query.get('visitCreated') === '1';
-  renderPatientProfile(params.id, justCreated, justVisitCreated);
+  const justConsentCreated = query.get('consentCreated') === '1';
+  renderPatientProfile(params.id, justCreated, justVisitCreated, justConsentCreated);
 });
 
 /* ---------------- Global nav wiring ---------------- */
@@ -642,12 +771,7 @@ async function initApp() {
   window.KnhosRouter.startRouter();
 
   if ('serviceWorker' in navigator) {
-    // service-worker.js lives at the project root (not pwa/) specifically
-    // so its default scope already covers the whole app — see the comment
-    // at the top of service-worker.js for why.
-    navigator.serviceWorker.register('service-worker.js', { scope: './' }).catch(() => {
-      // Non-fatal: app still works online; offline caching just won't be active.
-    });
+    navigator.serviceWorker.register('service-worker.js', { scope: './' }).catch(() => {});
   }
 }
 
