@@ -1,50 +1,21 @@
 /**
  * visits.js
- * Stage 2A: visit database layer.
- *
- * Visits live in their own "visits" object store (added in DB version 2)
- * and are linked to a patient purely by patientId — patient records are
- * never modified to hold nested visit data.
- *
- * Scope for Stage 2A: create / read / list only. Editing, deletion, and
- * the full visit history UI belong to later stages.
+ * Stage 4: visit database layer (Create, Read, Update).
  */
-
 (function () {
 'use strict';
 
-const { dbAdd, dbGet, dbGetAllByIndex } = window.KnhosDB;
-
+const { dbAdd, dbGet, dbGetAllByIndex, dbPut } = window.KnhosDB;
 const VALID_DEPARTMENTS = ['Dental', 'Naturopathy'];
 
-/**
- * Create a new visit for an existing patient.
- * Required: patientId, department, visitDate, visitTime
- * Optional: reason, notes
- *
- * Verifies the patient exists before creating anything, so an invalid
- * patientId can never result in an orphan visit record.
- */
 async function createVisit({ patientId, department, visitDate, visitTime, reason, notes }) {
-  if (!patientId || !String(patientId).trim()) {
-    throw new Error('Patient ID is required.');
-  }
+  if (!patientId) throw new Error('Patient ID is required.');
   if (!department || !VALID_DEPARTMENTS.includes(department)) {
     throw new Error('Department is required and must be Dental or Naturopathy.');
   }
-  if (!visitDate) {
-    throw new Error('Visit date is required.');
-  }
-  if (!visitTime) {
-    throw new Error('Visit time is required.');
-  }
 
-  // Verify the patient actually exists before creating a visit — never
-  // allow an orphan visit record.
   const patient = await window.KnhosPatients.getPatient(patientId);
-  if (!patient) {
-    throw new Error(`Cannot create visit: no patient exists with ID "${patientId}".`);
-  }
+  if (!patient) throw new Error(`Cannot create visit: no patient exists.`);
 
   const visitId = await window.KnhosIdGen.getNextId('visit');
   const record = {
@@ -62,21 +33,17 @@ async function createVisit({ patientId, department, visitDate, visitTime, reason
   return record;
 }
 
-/** Fetch a single visit by its visitId. */
 async function getVisit(visitId) {
   return dbGet('visits', visitId);
 }
 
-/**
- * List all visits belonging to a single patient, newest first. Uses the
- * "patientId" index so only that patient's visits are ever retrieved —
- * visits for other patients are never fetched or filtered client-side.
- *
- * Primary sort key is createdAt. visitId (VIS-000001, VIS-000002, ...) is
- * used as a tiebreaker since it is already strictly increasing per visit;
- * this keeps ordering correct even if two visits are created within the
- * same millisecond, when createdAt alone can't distinguish them.
- */
+// Allows doctors to save clinical data to the visit
+async function updateVisit(visit) {
+  if (!visit.visitId) throw new Error('Visit ID is required for update.');
+  await dbPut('visits', visit);
+  return visit;
+}
+
 async function listVisitsForPatient(patientId) {
   const visits = await dbGetAllByIndex('visits', 'patientId', patientId);
   return visits.sort((a, b) => {
@@ -89,6 +56,7 @@ async function listVisitsForPatient(patientId) {
 window.KnhosVisits = {
   createVisit,
   getVisit,
+  updateVisit,
   listVisitsForPatient,
 };
 })();
