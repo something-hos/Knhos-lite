@@ -1,29 +1,16 @@
 /**
  * db.js
  * IndexedDB initialization and low-level generic helpers.
- *
- * Stage 1 scope: the "patients" store and the "counters" store
- * (counters back automatic ID generation and are never exported as
- * patient data).
- *
- * Stage 2A adds the "visits" store (DB version 1 -> 2). The upgrade only
- * adds the new store; it never touches existing "patients" or "counters"
- * data. Future stages (consents, signatures, etc.) will bump the version
- * further using the same additive pattern.
  */
 
 (function () {
 'use strict';
 
 const KNHOS_DB_NAME = 'knhos_lite';
-const KNHOS_DB_VERSION = 2;
+const KNHOS_DB_VERSION = 3;
 
 let dbInstance = null;
 
-/**
- * Open (or create/upgrade) the KNHOS Lite database.
- * Returns a Promise<IDBDatabase>.
- */
 function openDatabase() {
   return new Promise((resolve, reject) => {
     if (dbInstance) {
@@ -56,6 +43,13 @@ function openDatabase() {
         visitStore.createIndex('patientId', 'patientId', { unique: false });
         visitStore.createIndex('createdAt', 'createdAt', { unique: false });
       }
+
+      // --- consents store (added in DB version 3 / Stage 3) ---
+      if (!db.objectStoreNames.contains('consents')) {
+        const consentStore = db.createObjectStore('consents', { keyPath: 'consentId' });
+        consentStore.createIndex('patientId', 'patientId', { unique: false });
+        consentStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
     };
 
     request.onsuccess = (event) => {
@@ -69,13 +63,6 @@ function openDatabase() {
   });
 }
 
-/**
- * Run a transaction against one or more stores.
- * @param {string|string[]} storeNames
- * @param {IDBTransactionMode} mode
- * @param {(tx: IDBTransaction) => void} work - synchronous work using tx.objectStore(...)
- * @returns {Promise<void>} resolves when the transaction completes
- */
 async function withTransaction(storeNames, mode, work) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -99,7 +86,6 @@ function requestToPromise(request) {
   });
 }
 
-/** Add a new record. Rejects if the key already exists. */
 async function dbAdd(storeName, record) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -111,9 +97,6 @@ async function dbAdd(storeName, record) {
   });
 }
 
-/** Put (insert or overwrite) a record. Used sparingly; consent/signature
- * records must never use this to overwrite history — see consents.js
- * in later stages. */
 async function dbPut(storeName, record) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -125,7 +108,6 @@ async function dbPut(storeName, record) {
   });
 }
 
-/** Get a single record by primary key. */
 async function dbGet(storeName, key) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -137,7 +119,6 @@ async function dbGet(storeName, key) {
   });
 }
 
-/** Get all records in a store. */
 async function dbGetAll(storeName) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
@@ -149,7 +130,6 @@ async function dbGetAll(storeName) {
   });
 }
 
-/** Get all records matching an index value. */
 async function dbGetAllByIndex(storeName, indexName, value) {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
