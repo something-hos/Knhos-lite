@@ -1,11 +1,11 @@
 /**
  * visits.js
- * Stage 4: Ultimate Dental (Supports Rx arrays, Invoice arrays, and Dental charting).
+ * Step 1: Added workflow status tracking (waiting, in-progress, completed).
  */
 (function () {
 'use strict';
 
-const { dbAdd, dbGet, dbGetAllByIndex, dbPut } = window.KnhosDB;
+const { dbAdd, dbGet, dbGetAll, dbGetAllByIndex, dbPut } = window.KnhosDB;
 const VALID_DEPARTMENTS = ['Dental', 'Naturopathy'];
 
 async function createVisit({ patientId, department, visitDate, visitTime, reason, notes }) {
@@ -26,6 +26,7 @@ async function createVisit({ patientId, department, visitDate, visitTime, reason
     visitTime,
     reason: reason ? String(reason).trim() : '',
     notes: notes ? String(notes).trim() : '',
+    status: 'waiting', // New visits instantly drop into the Waiting Room
     createdAt: new Date().toISOString(),
   };
 
@@ -52,10 +53,21 @@ async function listVisitsForPatient(patientId) {
   });
 }
 
+// Retrieves all patients currently sitting in the waiting room
+async function getWaitingVisits() {
+  const allVisits = await dbGetAll('visits');
+  return allVisits
+    .filter(v => v.status === 'waiting')
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 window.KnhosVisits = {
   createVisit,
   getVisit,
   updateVisit,
   listVisitsForPatient,
+  getWaitingVisits,
 };
+})();
+
 })();
