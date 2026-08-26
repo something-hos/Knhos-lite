@@ -1,6 +1,6 @@
 /**
  * visits.js
- * Stage 4: visit database layer (Create, Read, Update).
+ * Stage 4: Ultimate Dental (Supports Rx arrays, Invoice arrays, and Dental charting).
  */
 (function () {
 'use strict';
@@ -37,7 +37,6 @@ async function getVisit(visitId) {
   return dbGet('visits', visitId);
 }
 
-// Allows doctors to save clinical data to the visit
 async function updateVisit(visit) {
   if (!visit.visitId) throw new Error('Visit ID is required for update.');
   await dbPut('visits', visit);
