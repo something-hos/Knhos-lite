@@ -1,6 +1,6 @@
 /**
  * visits.js
- * Step 1: Added workflow status tracking (waiting, in-progress, completed).
+ * Step 1: Added workflow status tracking (waiting, in- progress, completed).
  */
 (function () {
 'use strict';
