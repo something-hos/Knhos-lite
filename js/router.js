@@ -2,13 +2,6 @@
  * router.js
  * Minimal hash-based router. Routes are registered as
  * { pattern: '#/patients/:id', handler: (params, query) => {...} }.
- * No external dependency — plain string matching is sufficient for
- * the small number of screens in KNHOS Lite.
- *
- * The hash may contain a query string, e.g. "#/patients/TMP-000002?created=1".
- * Path matching and query-string parsing are kept strictly separate (using
- * the native URL/URLSearchParams APIs) so a query string can never leak into
- * a route parameter such as a patient ID.
  */
 
 (function () {
@@ -36,18 +29,12 @@ function navigate(hash) {
   window.location.hash = hash;
 }
 
-/**
- * Split "#/patients/TMP-000002?created=1" into its path ("#/patients/TMP-000002")
- * and a URLSearchParams for the query ("created=1"), using the native URL
- * parser rather than manual string slicing. A dummy base is required because
- * the hash body is a relative reference, not an absolute URL.
- */
 function parseHash(rawHash) {
-  const hashBody = rawHash.slice(1); // drop the leading '#', e.g. "/patients/TMP-000002?created=1"
+  const hashBody = rawHash.slice(1);
   const parsed = new URL(hashBody, 'https://knhos-router.invalid/');
   return {
-    path: `#${parsed.pathname}`, // e.g. "#/patients/TMP-000002"
-    query: parsed.searchParams, // e.g. URLSearchParams { created: "1" }
+    path: `#${parsed.pathname}`,
+    query: parsed.searchParams,
   };
 }
 
@@ -66,7 +53,6 @@ function resolveCurrentRoute() {
       return;
     }
   }
-  // Fallback: unknown route -> home
   navigate('#/home');
 }
 
@@ -81,4 +67,3 @@ window.KnhosRouter = {
   startRouter,
 };
 })();
-
