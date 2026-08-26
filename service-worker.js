@@ -16,7 +16,7 @@
  * the Service Worker / Cache API URL resolution rules.
  */
 
-const CACHE_VERSION = 'knhos-lite-shell-v2';
+const CACHE_VERSION = 'knhos-lite-shell-v3';
 
 const SHELL_FILES = [
   './',
