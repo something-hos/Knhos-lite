@@ -1,6 +1,6 @@
 /**
  * service-worker.js
- * Phase 4 Upgrade - Ultimate Dental
+ * Phase 4 Upgrade - Ultimate Dental & Billing
  */
 
 const CACHE_VERSION = 'knhos-lite-shell-v6';
