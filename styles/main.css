@@ -1,6 +1,5 @@
 /* ==========================================================
    KNHOS Lite — main stylesheet
-   Clean, minimalist, touch-friendly. iPad-first.
    ========================================================== */
 
 :root {
@@ -39,13 +38,14 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 #main-nav { display: flex; gap: 8px; flex-wrap: wrap; }
 .nav-btn { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; padding: 11px 16px; border-radius: 8px; cursor: pointer; min-height: var(--touch-min); font-weight: 500; transition: background 0.15s ease; }
+.nav-btn:hover { background: rgba(255, 255, 255, 0.2); }
 .nav-btn.active { background: #fff; color: var(--color-primary-dark); border-color: #fff; }
 .nav-btn-backup { background: #c98a2b; border-color: #c98a2b; font-weight: 600; }
 
-/* STEP 1: Context Bar (Waiting Room & Active Chair) */
-.context-bar { display: flex; gap: 12px; align-items: center; flex: 1; justify-content: center; }
+/* FIX: Dedicated Context Bar Row */
+.context-bar-wrapper { background: var(--color-primary-dark); min-height: 48px; padding: 8px 20px; display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); }
+.context-bar-wrapper:empty { display: none; }
 .context-btn { display: flex; align-items: center; gap: 8px; border: none; border-radius: 20px; padding: 8px 18px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: transform 0.15s; }
-.context-btn:hover { transform: scale(1.02); }
 .btn-waiting { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; box-shadow: 0 2px 8px rgba(230, 81, 0, 0.2); }
 .btn-waiting .badge { background: #e65100; color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 0.85rem; }
 .btn-waiting-empty { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); }
@@ -91,7 +91,6 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* Alerts & Lists */
 .alert { border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px; border: 1px solid var(--color-border); }
 .alert-warn { background: var(--color-warn-bg); border-color: var(--color-warn-border); color: var(--color-warn-text); }
-.alert-error { background: #fbeae7; border-color: #e3a99e; color: var(--color-danger); }
 .alert-success { background: #e8f3ee; border-color: #9dc9b4; color: #1f5d40; }
 .alert h3 { margin: 0 0 6px; font-size: 1.02rem; }
 .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -126,7 +125,6 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 
 @media (max-width: 900px) {
   .header-inner { flex-direction: column; align-items: stretch; }
-  .context-bar { margin: 12px 0; justify-content: center; width: 100%; }
   #main-nav { justify-content: space-between; }
   .nav-btn { flex: 1 1 auto; text-align: center; padding: 11px 8px; }
   #app-main { padding: 20px 14px 50px; }
