@@ -1,421 +1,426 @@
-/**
- * app.js
- * Step 1: Contex-Aware Navigation (Bulletproof Version)
- */
- 
 (function () {
 'use strict';
-
 const viewRoot = document.getElementById('view-root');
 const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
 
 function escapeHtml(str) { return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function formatDate(isoString) { if (!isoString) return '—'; const d = new Date(isoString); if (Number.isNaN(d.getTime())) return isoString; return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
-function formatDateTime(isoString) { if (!isoString) return '—'; const d = new Date(isoString); if (Number.isNaN(d.getTime())) return isoString; return `${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`; }
+function setActiveNav(routeHash) { navButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.route === routeHash)); }
 
-function setActiveNav(routeHash) {
-  navButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.route === routeHash));
-}
+// --- GLOBALS FOR CLINICAL WORKFLOW ---
+let toothRecords = {}; 
+let currentVisitId = null;
+let currentPatient = null;
+let activeToothNumber = null;
+let currentMode = 'adult';
+let rxItems = [];
+let invoiceItems = [];
 
-// FIX: Added bulletproof safety net to prevent app freezing if cache gets stuck
+const ADULT_UPPER = [18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28];
+const ADULT_LOWER = [48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38];
+const PRIMARY_UPPER = [55,54,53,52,51, 61,62,63,64,65];
+const PRIMARY_LOWER = [85,84,83,82,81, 71,72,73,74,75];
+
+const FINDING_LABELS = { 'deep-caries': 'Deep Caries', 'moderate-caries': 'Moderate Caries', 'mobile': 'Mobile', 'fractured': 'Fractured', 'periapical-abscess': 'Periapical Abscess', 'missing': 'Missing', 'impacted': 'Impacted' };
+const TX_LABELS = { 'rct': 'RCT', 'extraction': 'Extraction', 'crown-prep': 'Crown Prep', 'filling': 'Filling', 'braces': 'Braces', 'scaling': 'Scaling' };
+const TX_DONE_LABELS = { 'excavation': 'Excavation', 'rct-started': 'RCT Started', 'rct-completed': 'RCT Completed', 'extraction-done': 'Extraction Done', 'filling-done': 'Filling Placed' };
+const TREATMENT_TIMELINE_DAYS = { 'extraction': 7, 'crown-prep': 10, 'braces': 30, 'rct': 5, 'filling': 14, 'scaling': 30 };
+
+// --- CONTEXT BAR (Step 1) ---
 async function updateContextBar() {
   const bar = document.getElementById('dynamic-context-bar');
   if (!bar) return;
+  const waitingVisits = await window.KnhosVisits.getWaitingVisits();
+  const activeVisitId = localStorage.getItem('knhos_active_visit');
+  let html = '';
 
-  try {
-    if (!window.KnhosVisits || typeof window.KnhosVisits.getWaitingVisits !== 'function') {
-      console.warn("Safety net triggered: Waiting for visits.js to update via service worker.");
-      return;
-    }
-
-    const waitingVisits = await window.KnhosVisits.getWaitingVisits();
-    const activeVisitId = localStorage.getItem('knhos_active_visit');
-    let html = '';
-
-    if (waitingVisits.length > 0) {
-      html += `<button class="context-btn btn-waiting" id="btn-nav-queue">Waiting Room <span class="badge">${waitingVisits.length}</span></button>`;
-    } else {
-      html += `<button class="context-btn btn-waiting-empty" id="btn-nav-queue">Waiting Room (0)</button>`;
-    }
-
-    if (activeVisitId) {
-      const activeVisit = await window.KnhosVisits.getVisit(activeVisitId);
-      if (activeVisit) {
-        const patient = await window.KnhosPatients.getPatient(activeVisit.patientId);
-        const name = patient ? patient.fullName : 'Unknown';
-        html += `<button class="context-btn btn-active-patient" id="btn-nav-active">Treating: ${escapeHtml(name)}</button>`;
-      } else {
-        localStorage.removeItem('knhos_active_visit');
-      }
-    }
-
-    bar.innerHTML = html;
-
-    const queueBtn = document.getElementById('btn-nav-queue');
-    if (queueBtn) queueBtn.addEventListener('click', () => window.KnhosRouter.navigate('#/queue'));
-
-    const activeBtn = document.getElementById('btn-nav-active');
-    if (activeBtn) activeBtn.addEventListener('click', () => window.KnhosRouter.navigate(`#/visits/${encodeURIComponent(activeVisitId)}`));
-  } catch (err) {
-    console.error("Context bar error gracefully caught:", err);
+  if (waitingVisits.length > 0) {
+    html += `<button class="context-btn btn-waiting" id="btn-nav-queue">Waiting Room <span class="badge">${waitingVisits.length}</span></button>`;
+  } else {
+    html += `<button class="context-btn btn-waiting-empty" id="btn-nav-queue">Waiting Room (0)</button>`;
   }
+
+  if (activeVisitId) {
+    const activeVisit = await window.KnhosVisits.getVisit(activeVisitId);
+    if (activeVisit) {
+      const patient = await window.KnhosPatients.getPatient(activeVisit.patientId);
+      html += `<button class="context-btn btn-active-patient" id="btn-nav-active">Treating: ${escapeHtml(patient ? patient.fullName : 'Unknown')}</button>`;
+    } else {
+      localStorage.removeItem('knhos_active_visit');
+    }
+  }
+  bar.innerHTML = html;
+
+  const queueBtn = document.getElementById('btn-nav-queue');
+  if (queueBtn) queueBtn.addEventListener('click', () => window.KnhosRouter.navigate('#/queue'));
+  const activeBtn = document.getElementById('btn-nav-active');
+  if (activeBtn) activeBtn.addEventListener('click', () => window.KnhosRouter.navigate(`#/visits/${encodeURIComponent(activeVisitId)}`));
 }
 
-async function setView(html) {
-  viewRoot.innerHTML = html;
-  viewRoot.scrollTop = 0;
-  window.scrollTo(0, 0);
+async function setView(html) { 
+  viewRoot.innerHTML = html; 
+  window.scrollTo(0, 0); 
   await updateContextBar();
 }
 
-/* ==========================================================
-   THE WAITING ROOM QUEUE
-   ========================================================== */
-async function renderQueue() {
-  setActiveNav('__none__');
-  
-  if (typeof window.KnhosVisits.getWaitingVisits !== 'function') {
-    setView(`<div class="alert alert-warn"><h3>Update in progress</h3><p>Please refresh the page to load the waiting room module.</p></div>`);
-    return;
-  }
-
-  const waitingVisits = await window.KnhosVisits.getWaitingVisits();
-
-  let listHtml = '';
-  if (waitingVisits.length === 0) {
-    listHtml = `<div class="empty-state">No patients currently waiting.</div>`;
-  } else {
-    const items = await Promise.all(waitingVisits.map(async (v) => {
-      const p = await window.KnhosPatients.getPatient(v.patientId) || { fullName: 'Unknown Patient' };
-      return `
-        <div class="patient-row">
-          <div style="flex:1;">
-            <span class="patient-row-name">${escapeHtml(p.fullName)}</span>
-            <span class="patient-row-id">Cause: ${escapeHtml(v.reason || 'Not specified')}</span>
-            <div style="margin-top: 6px;"><span class="visit-dept-badge">${escapeHtml(v.department)}</span></div>
-          </div>
-          <div>
-            <button class="btn btn-primary btn-start-visit" data-visit="${escapeHtml(v.visitId)}">Call to Chair (Start)</button>
-          </div>
-        </div>
-      `;
-    }));
-    listHtml = `<div class="patient-list">${items.join('')}</div>`;
-  }
-
-  setView(`
-    <div class="view-header">
-      <h1>Waiting Room Queue</h1>
-      <p>Patients waiting to be seen by the doctor.</p>
-    </div>
-    <div class="card">${listHtml}</div>
-  `);
-
-  document.querySelectorAll('.btn-start-visit').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const visitId = e.target.dataset.visit;
-      const visit = await window.KnhosVisits.getVisit(visitId);
-      visit.status = 'in-progress';
-      await window.KnhosVisits.updateVisit(visit);
-      localStorage.setItem('knhos_active_visit', visitId);
-      window.KnhosRouter.navigate(`#/visits/${encodeURIComponent(visitId)}`);
-    });
-  });
-}
-
-/* ==========================================================
-   HOME & NEW PATIENT
-   ========================================================== */
+// --- STANDARD VIEWS ---
 function renderHome() {
   setActiveNav('#/home');
-  setView(`
-    <div class="view-header"><h1>Home</h1><p>KNHOS Lite — temporary patient records.</p></div>
-    <div class="home-grid">
-      <a class="home-tile" href="#/patients/new"><span class="home-tile-icon">＋</span><span class="home-tile-title">New Patient</span><span class="home-tile-desc">Register a new patient and get an automatic ID.</span></a>
-      <a class="home-tile" href="#/patients"><span class="home-tile-icon">☰</span><span class="home-tile-title">Patients</span><span class="home-tile-desc">Browse all registered patients.</span></a>
-      <a class="home-tile" href="#/search"><span class="home-tile-icon">⌕</span><span class="home-tile-title">Search</span><span class="home-tile-desc">Find a patient by ID, name, or phone.</span></a>
-    </div>
-  `);
+  setView(`<h1>Home</h1><div class="card"><p>Welcome to KNHOS Lite</p></div>`);
 }
 
-let pendingRegistration = null;
-function renderNewPatient(prefill, duplicateWarningHtml) {
-  setActiveNav('#/patients/new');
-  const v = prefill || {};
-  setView(`
-    <div class="view-header"><h1>New Patient</h1><p>Patient ID is generated automatically after saving.</p></div>
-    ${duplicateWarningHtml || ''}
-    <div class="card">
-      <form id="new-patient-form">
-        <div class="form-grid">
-          <div class="field"><label>Full Name <span class="required-mark">*</span></label><input type="text" id="fullName" required autocomplete="off" value="${escapeHtml(v.fullName)}"></div>
-          <div class="field"><label>Date of Birth <span class="required-mark">*</span></label><input type="date" id="dob" required value="${escapeHtml(v.dob)}"></div>
-          <div class="field">
-            <label>Gender <span class="required-mark">*</span></label>
-            <select id="gender" required>
-              <option value="" ${!v.gender ? 'selected' : ''} disabled>Select…</option>
-              <option value="Female" ${v.gender === 'Female' ? 'selected' : ''}>Female</option>
-              <option value="Male" ${v.gender === 'Male' ? 'selected' : ''}>Male</option>
-              <option value="Other" ${v.gender === 'Other' ? 'selected' : ''}>Other</option>
-            </select>
-          </div>
-          <div class="field"><label>Phone Number</label><input type="tel" id="phone" autocomplete="off" value="${escapeHtml(v.phone)}"></div>
-          <div class="field" style="grid-column: 1 / -1;"><label>Address</label><textarea id="address" rows="2">${escapeHtml(v.address)}</textarea></div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Save Patient</button>
-          <button type="button" class="btn btn-secondary" id="cancel-new-patient">Cancel</button>
-        </div>
-      </form>
-    </div>
-  `);
-
-  document.getElementById('new-patient-form').addEventListener('submit', onSubmitNewPatient);
-  document.getElementById('cancel-new-patient').addEventListener('click', () => {
-    pendingRegistration = null;
-    window.KnhosRouter.navigate('#/home');
-  });
-}
-
-function readNewPatientForm() {
-  return { fullName: document.getElementById('fullName').value.trim(), dob: document.getElementById('dob').value, gender: document.getElementById('gender').value, phone: document.getElementById('phone').value.trim(), address: document.getElementById('address').value.trim() };
-}
-
-async function onSubmitNewPatient(event) {
-  event.preventDefault();
-  const data = readNewPatientForm();
-  const duplicates = await window.KnhosPatients.findPossibleDuplicates(data);
-
-  if (duplicates.length > 0) {
-    pendingRegistration = data;
-    const items = duplicates.map((p) => `
-      <div class="patient-row" style="cursor:default;">
-        <div><span class="patient-row-name">${escapeHtml(p.fullName)}</span><span class="patient-row-id">${escapeHtml(p.patientId)}</span></div>
-        <div><button class="btn btn-secondary btn-sm open-existing-btn" data-id="${escapeHtml(p.patientId)}">Open Patient</button></div>
-      </div>
-    `).join('');
-
-    renderNewPatient(data, `
-      <div class="alert alert-warn">
-        <h3>Possible duplicate patient found</h3>
-        <div class="patient-list" style="margin-top: 12px;">${items}</div>
-        <div class="alert-actions"><button class="btn btn-primary" id="continue-anyway-btn">Continue Anyway</button></div>
-      </div>
-    `);
-    document.querySelectorAll('.open-existing-btn').forEach((btn) => btn.addEventListener('click', () => { pendingRegistration = null; window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(btn.dataset.id)}`); }));
-    document.getElementById('continue-anyway-btn').addEventListener('click', async () => await finalizeRegistration(pendingRegistration));
-    return;
-  }
-  await finalizeRegistration(data);
-}
-
-async function finalizeRegistration(data) {
-  const record = await window.KnhosPatients.createPatient(data);
-  pendingRegistration = null;
-  window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(record.patientId)}?created=1`);
-}
-
-/* ==========================================================
-   PATIENTS LIST / SEARCH
-   ========================================================== */
-async function renderPatientsListOrSearch(routeHash, heading, initialQuery) {
-  setActiveNav(routeHash);
-  setView(`
-    <div class="view-header"><h1>${heading}</h1></div>
-    <div class="search-bar"><input type="search" id="patient-search-input" placeholder="Search by ID, name, or phone..." value="${escapeHtml(initialQuery || '')}"></div>
-    <ul class="patient-list" id="patient-list-container"></ul>
-  `);
-  const input = document.getElementById('patient-search-input'); const container = document.getElementById('patient-list-container');
-  
-  async function runSearch(q) {
-    const results = q ? await window.KnhosPatients.searchPatients(q) : await window.KnhosPatients.listPatients();
-    if (results.length === 0) { container.innerHTML = `<div class="empty-state">No matches.</div>`; return; }
-    container.innerHTML = results.map(p => `
-      <li>
-        <button class="patient-row" data-id="${escapeHtml(p.patientId)}" style="cursor:pointer;">
-          <div><span class="patient-row-name">${escapeHtml(p.fullName)}</span><span class="patient-row-id">${escapeHtml(p.patientId)}</span></div>
-          <div style="text-align:right; font-size:0.9rem; color:#555;">${escapeHtml(p.phone || 'No phone')}</div>
-        </button>
-      </li>
-    `).join('');
-    container.querySelectorAll('.patient-row').forEach(btn => btn.addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(btn.dataset.id)}`)));
-  }
-  
-  input.addEventListener('input', () => runSearch(input.value.trim())); 
-  await runSearch(initialQuery || '');
-}
-
-/* ==========================================================
-   PATIENT PROFILE & NEW VISIT
-   ========================================================== */
-async function renderPatientProfile(patientId, justCreated) {
+async function renderPatientProfile(patientId) {
   setActiveNav('__none__');
   const patient = await window.KnhosPatients.getPatient(patientId);
-  if (!patient) return window.KnhosRouter.navigate('#/home');
-  const visits = await window.KnhosVisits.listVisitsForPatient(patient.patientId);
-  const consents = window.KnhosConsents ? await window.KnhosConsents.listConsentsForPatient(patient.patientId) : [];
-
-  function getStatusColor(status) {
-    if(status === 'waiting') return 'background:#fff3e0; color:#e65100;';
-    if(status === 'in-progress') return 'background:#e8f5e9; color:#1b5e20;';
-    return 'background:#f5f5f5; color:#757575;';
-  }
-
-  const visitHtml = visits.length === 0 ? '<div class="notice-inline">No visits yet.</div>' : `<ul class="visit-list">${visits.map(v => `
-    <li class="visit-card">
-      <div class="visit-card-header">
-        <div>
-          <span class="visit-id">${escapeHtml(v.visitId)}</span>
-          <span class="visit-dept-badge" style="margin-left: 8px;">${escapeHtml(v.department)}</span>
-          ${v.status ? `<span class="visit-status-badge" style="${getStatusColor(v.status)}">${escapeHtml(v.status)}</span>` : ''}
-        </div>
-        <button class="btn btn-secondary btn-sm open-record-btn" data-visit="${escapeHtml(v.visitId)}">Open Record</button>
-      </div>
-      <div class="visit-datetime">${formatDate(v.visitDate)} ${v.reason ? `• <strong>${escapeHtml(v.reason)}</strong>` : ''}</div>
-    </li>`).join('')}</ul>`;
-
-  const consentHtml = consents.length === 0 ? '<div class="notice-inline">No consents yet.</div>' : consents.map(c => `<div class="consent-card"><div class="visit-card-header"><span class="visit-id">${escapeHtml(c.consentId)}</span><span class="visit-dept-badge">${escapeHtml(c.type)}</span></div><div class="visit-datetime">${formatDateTime(c.createdAt)}</div><div><img src="${c.signatureData}" class="consent-sig-img" /></div></div>`).join('');
-
+  const visits = await window.KnhosVisits.listVisitsForPatient(patientId);
+  let visitsHtml = visits.map(v => `<div class="patient-row" data-visit="${v.visitId}"><div><strong>Visit:</strong> ${v.visitDate} - ${escapeHtml(v.reason)} <br><small>Status: ${v.status.toUpperCase()}</small></div> <button class="btn btn-secondary open-visit-btn" data-id="${v.visitId}">Open</button></div>`).join('');
+  
   setView(`
-    <div class="view-header"><h1>${escapeHtml(patient.fullName)}</h1><p><span class="profile-id-badge">${escapeHtml(patient.patientId)}</span></p></div>
-    ${justCreated ? `<div class="alert alert-success"><h3>Patient registered</h3></div>` : ''}
-    <div class="card">
-      <div class="section-title">Patient Information</div>
-      <div class="profile-fields">
-        <div><div class="profile-field-label">DOB</div><div class="profile-field-value">${escapeHtml(patient.dob)}</div></div>
-        <div><div class="profile-field-label">Gender</div><div class="profile-field-value">${escapeHtml(patient.gender)}</div></div>
-        <div><div class="profile-field-label">Phone</div><div class="profile-field-value">${patient.phone ? escapeHtml(patient.phone) : '—'}</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="section-title">Visits</div>
-      ${visitHtml}
-      <div class="form-actions" style="margin-top: 14px;"><button class="btn btn-primary" id="new-visit-btn">+ New Visit</button></div>
-      <hr style="border: 0; border-top: 1px solid var(--color-border); margin: 20px 0;">
-      <div class="section-title">Consents</div>
-      ${consentHtml}
-      <div class="form-actions" style="margin-top: 14px;"><button class="btn btn-primary" id="new-consent-btn">+ New Consent</button></div>
-    </div>
+    <h1>${escapeHtml(patient.fullName)}</h1>
+    <div class="card"><button class="btn btn-primary" id="btn-new-visit">New Visit Intake</button></div>
+    ${visitsHtml}
   `);
-  document.getElementById('new-visit-btn').addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}/visits/new`));
-  document.getElementById('new-consent-btn').addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}/consents/new`));
-  document.querySelectorAll('.open-record-btn').forEach(btn => btn.addEventListener('click', () => window.KnhosRouter.navigate(`#/visits/${encodeURIComponent(btn.dataset.visit)}`)));
+  
+  document.getElementById('btn-new-visit').addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${patientId}/visits/new`));
+  
+  document.querySelectorAll('.open-visit-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+    // Guard clause: Promote 'waiting' to 'in-progress' if opened directly
+    const visitId = e.target.dataset.id;
+    const visit = await window.KnhosVisits.getVisit(visitId);
+    if(visit.status === 'waiting') {
+      visit.status = 'in-progress';
+      await window.KnhosVisits.updateVisit(visit);
+    }
+    localStorage.setItem('knhos_active_visit', visitId);
+    window.KnhosRouter.navigate(`#/visits/${visitId}`);
+  }));
 }
 
 async function renderNewVisit(patientId) {
   const patient = await window.KnhosPatients.getPatient(patientId);
   setView(`
-    <div class="view-header"><h1>New Visit (Intake)</h1><p>Patient: <strong>${escapeHtml(patient.fullName)}</strong></p></div>
+    <h1>New Visit Intake for ${escapeHtml(patient.fullName)}</h1>
     <div class="card">
-      <form id="new-visit-form">
-        <div class="form-grid">
-          <div class="field"><label>Department *</label><select id="department" required><option value="" selected disabled>Select…</option><option value="Dental">Dental</option><option value="Naturopathy">Naturopathy</option></select></div>
-          <div class="field"><label>Visit Date *</label><input type="date" id="visitDate" required value="${new Date().toISOString().split('T')[0]}"></div>
-          <div class="field" style="grid-column: 1 / -1;"><label>Cause of Visit (Chief Complaint) *</label><input type="text" id="reason" required placeholder="e.g., Tooth ache, consultation"></div>
-        </div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Send to Waiting Room</button>
-          <button type="button" class="btn btn-secondary" id="cancel-new-visit">Cancel</button>
-        </div>
+      <form id="visit-form">
+        <label style="font-weight:bold;display:block;margin-bottom:8px;">Reason (Chief Complaint)</label>
+        <input type="text" id="reason" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ccc;" required>
+        <button type="submit" class="btn btn-primary" style="margin-top:16px;">Send to Waiting Room</button>
       </form>
     </div>
   `);
-  document.getElementById('cancel-new-visit').addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}`));
-  document.getElementById('new-visit-form').addEventListener('submit', async (e) => {
+  document.getElementById('visit-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await window.KnhosVisits.createVisit({ 
-      patientId, 
-      department: document.getElementById('department').value, 
-      visitDate: document.getElementById('visitDate').value,
-      reason: document.getElementById('reason').value.trim()
-    });
-    window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}`);
+    await window.KnhosVisits.createVisit({ patientId, department: 'Dental', visitDate: new Date().toISOString().split('T')[0], reason: document.getElementById('reason').value });
+    window.KnhosRouter.navigate(`#/patients/${patientId}`);
   });
 }
 
-/* ==========================================================
-   CLINICAL RECORD STAGING AREA
-   ========================================================== */
+// --- QUEUE VIEW (Step 1) ---
+async function renderQueue() {
+  setActiveNav('__none__');
+  const waitingVisits = await window.KnhosVisits.getWaitingVisits();
+  let html = `<h1>Waiting Room</h1>`;
+  if(waitingVisits.length === 0) {
+    html += `<div class="card">No patients waiting.</div>`;
+  } else {
+    for (const v of waitingVisits) {
+      const p = await window.KnhosPatients.getPatient(v.patientId);
+      html += `<div class="patient-row"><div><strong>${escapeHtml(p.fullName)}</strong><br>Reason: ${escapeHtml(v.reason)}</div><button class="btn btn-primary btn-call-chair" data-id="${v.visitId}">Call to Chair</button></div>`;
+    }
+  }
+  await setView(html);
+  
+  document.querySelectorAll('.btn-call-chair').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const visitId = e.target.dataset.id;
+      const visit = await window.KnhosVisits.getVisit(visitId);
+      visit.status = 'in-progress';
+      await window.KnhosVisits.updateVisit(visit);
+      localStorage.setItem('knhos_active_visit', visitId);
+      window.KnhosRouter.navigate(`#/visits/${visitId}`);
+    });
+  });
+}
+
+// --- CLINICAL UTILS (Step 2 & 3) ---
+function getAgeFromDob(dob) {
+  if(!dob) return 30;
+  const diff = Date.now() - new Date(dob).getTime();
+  return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+}
+
+function buildArchPositions(count, isUpper) {
+  const positions = [];
+  const centerX = 300, radiusX = 240, radiusY = 120;
+  const startAngle = Math.PI * 0.15, endAngle = Math.PI * 0.85;
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const angle = startAngle + t * (endAngle - startAngle);
+    const x = centerX - radiusX * Math.cos(angle);
+    const y = isUpper ? 30 + radiusY * (1 - Math.sin(angle)) : 170 - radiusY * (1 - Math.sin(angle));
+    const rotation = (angle - Math.PI / 2) * (180 / Math.PI) * (isUpper ? 1 : -1);
+    positions.push({ x, y, rotation });
+  }
+  return positions;
+}
+
+function renderArch(svgEl, toothNumbers, isUpper) {
+  const positions = buildArchPositions(toothNumbers.length, isUpper);
+  svgEl.innerHTML = '';
+  toothNumbers.forEach((toothNum, i) => {
+    const { x, y, rotation } = positions[i];
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${x},${y}) rotate(${rotation})`);
+    
+    const record = toothRecords[toothNum] || {};
+    const shapeClass = ['tooth-shape', record.finding ? 'has-finding' : '', record.txPlanned ? 'has-tx-planned' : '', record.txDone ? 'has-tx-done' : ''].filter(Boolean).join(' ');
+
+    g.innerHTML = `
+      <circle class="tooth-hit-area" cx="0" cy="0" r="22" data-tooth="${toothNum}"></circle>
+      <path class="${shapeClass}" d="M -8,-12 Q 0,-18 8,-12 L 6,8 Q 0,14 -6,8 Z" data-tooth="${toothNum}"></path>
+      <text class="tooth-number-label" x="0" y="${isUpper ? -22 : 26}">${toothNum}</text>
+    `;
+    svgEl.appendChild(g);
+  });
+}
+
+function renderOdontogram() {
+  let upperTeeth, lowerTeeth;
+  if (currentMode === 'adult') { upperTeeth = ADULT_UPPER; lowerTeeth = ADULT_LOWER; } 
+  else if (currentMode === 'primary') { upperTeeth = PRIMARY_UPPER; lowerTeeth = PRIMARY_LOWER; } 
+  else { upperTeeth = [...ADULT_UPPER, ...PRIMARY_UPPER]; lowerTeeth = [...ADULT_LOWER, ...PRIMARY_LOWER]; }
+  renderArch(document.getElementById('upper-arch-svg'), upperTeeth, true);
+  renderArch(document.getElementById('lower-arch-svg'), lowerTeeth, false);
+}
+
+function generateClinicalSummary(records) {
+  const findings = [], txPlanned = [], txDone = [];
+  Object.keys(records).forEach(toothNum => {
+    const r = records[toothNum];
+    if (r.finding) findings.push(`#${toothNum} (${FINDING_LABELS[r.finding] || r.finding})`);
+    if (r.txPlanned) txPlanned.push(`#${toothNum} (${TX_LABELS[r.txPlanned] || r.txPlanned})`);
+    if (r.txDone) txDone.push(`#${toothNum} (${TX_DONE_LABELS[r.txDone] || r.txDone})`);
+  });
+  const parts = [];
+  if (findings.length) parts.push(`Findings: ${findings.join(', ')}.`);
+  if (txPlanned.length) parts.push(`Tx Planned: ${txPlanned.join(', ')}.`);
+  if (txDone.length) parts.push(`Tx Done: ${txDone.join(', ')}.`);
+  return parts.join(' ') || 'No findings or treatments recorded.';
+}
+
+function suggestNextAppointment(records, fromDate = new Date()) {
+  let shortestDays = null, drivingTreatment = null;
+  Object.values(records).forEach(r => {
+    const txKey = r.txPlanned; 
+    if (!txKey || TREATMENT_TIMELINE_DAYS[txKey] === undefined) return;
+    const days = TREATMENT_TIMELINE_DAYS[txKey];
+    if (shortestDays === null || days < shortestDays) { shortestDays = days; drivingTreatment = txKey; }
+  });
+  if (shortestDays === null) return { suggestedDate: null, reason: 'No treatment planned — no auto-suggestion.' };
+  const suggested = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + shortestDays);
+  return { suggestedDate: suggested, reason: `Based on ${TX_LABELS[drivingTreatment]} (${shortestDays}-day timeline).` };
+}
+
+// --- CLINICAL DASHBOARD (Step 2) ---
 async function renderClinicalRecord(visitId) {
   setActiveNav('__none__');
+  currentVisitId = visitId;
   const visit = await window.KnhosVisits.getVisit(visitId);
-  if (!visit) return window.KnhosRouter.navigate('#/home');
-  const patient = await window.KnhosPatients.getPatient(visit.patientId);
+  currentPatient = await window.KnhosPatients.getPatient(visit.patientId);
+  toothRecords = visit.toothRecords || {};
+  currentMode = getAgeFromDob(currentPatient.dob) > 12 ? 'adult' : 'primary';
 
-  setView(`
-    <div class="view-header">
-      <h1>Clinical Dashboard</h1>
-      <p>Patient: <strong>${escapeHtml(patient.fullName)}</strong> • Visit: <span style="font-family:monospace;">${escapeHtml(visit.visitId)}</span></p>
-    </div>
-    
+  await setView(`
+    <div class="view-header"><h1>Clinical Dashboard</h1><p>${escapeHtml(currentPatient.fullName)}</p></div>
     <div class="card">
-      <div class="notice-inline" style="margin-bottom: 24px;">
-        <strong>Step 2 Staging Area:</strong> The Patient is successfully locked in the chair. The advanced SVG Odontogram and Rx engine will be injected here next.
-      </div>
-      
-      <div class="form-actions">
-        <button type="button" class="btn btn-primary" id="btn-complete-visit">Finish Treatment (Clear Chair)</button>
-        <button type="button" class="btn btn-secondary" id="btn-leave-chair">Keep Active (Go Back)</button>
+      <section id="odontogram-section">
+        <div class="dentition-toggle">
+          <button class="dent-toggle-btn ${currentMode==='adult'?'active':''}" data-mode="adult">Adult</button>
+          <button class="dent-toggle-btn ${currentMode==='primary'?'active':''}" data-mode="primary">Primary</button>
+          <button class="dent-toggle-btn ${currentMode==='mixed'?'active':''}" data-mode="mixed">Mixed</button>
+        </div>
+        <div id="odontogram-container">
+          <div class="arch-wrapper"><div class="arch-label">Upper</div><svg id="upper-arch-svg" viewBox="0 0 600 200"></svg></div>
+          <div class="arch-wrapper"><div class="arch-label">Lower</div><svg id="lower-arch-svg" viewBox="0 0 600 200"></svg></div>
+        </div>
+      </section>
+      <div style="margin-top:20px;">
+        <button id="btn-finish-treatment" class="btn btn-primary" style="width:100%; height: 54px; font-size: 1.1rem;">Finish Treatment (Checkout) ➔</button>
       </div>
     </div>
   `);
 
-  document.getElementById('btn-complete-visit').addEventListener('click', async () => {
-    visit.status = 'completed';
+  renderOdontogram();
+
+  document.querySelectorAll('.dent-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dent-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      renderOdontogram();
+    });
+  });
+
+  document.getElementById('odontogram-container').addEventListener('click', (e) => {
+    if(!e.target.classList.contains('tooth-hit-area')) return;
+    activeToothNumber = e.target.dataset.tooth;
+    const record = toothRecords[activeToothNumber] || {};
+    
+    document.getElementById('tooth-modal-title').textContent = `Tooth #${activeToothNumber}`;
+    document.getElementById('finding-select').value = record.finding || '';
+    document.getElementById('tx-planned-select').value = record.txPlanned || '';
+    document.getElementById('tx-done-select').value = record.txDone || '';
+    document.getElementById('consent-linked-badge').classList.toggle('hidden', !record.consentLinked);
+    
+    document.querySelectorAll('.tooth-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.querySelectorAll('.tooth-tab-panel').forEach((p, i) => p.classList.toggle('hidden', i !== 0));
+    document.getElementById('tooth-modal-backdrop').classList.remove('hidden');
+  });
+
+  document.getElementById('btn-finish-treatment').addEventListener('click', async () => {
+    visit.toothRecords = toothRecords;
     await window.KnhosVisits.updateVisit(visit);
+    renderCheckout();
+  });
+}
+
+// --- CHECKOUT & PRINT (Step 4) ---
+async function renderCheckout() {
+  const summary = generateClinicalSummary(toothRecords);
+  const suggestion = suggestNextAppointment(toothRecords);
+  
+  await setView(`
+    <div class="checkout-screen">
+      <div class="checkout-header"><h2>Finish Treatment</h2><span>${escapeHtml(currentPatient.fullName)}</span></div>
+      
+      <div class="checkout-block"><h3>Clinical Summary</h3><p class="summary-readonly">${escapeHtml(summary)}</p></div>
+      
+      <div class="checkout-block">
+        <h3>Prescription (Rx)</h3>
+        <div id="rx-list"></div>
+        <div class="rx-add-row"><input type="text" id="rx-drug-input" placeholder="Drug"><input type="text" id="rx-dosage-input" placeholder="Dosage"><button id="rx-add-btn">+ Add</button></div>
+      </div>
+      
+      <div class="checkout-block">
+        <h3>Invoice</h3>
+        <div id="invoice-list"></div>
+        <div class="invoice-add-row"><input type="text" id="invoice-item-input" placeholder="Item"><input type="number" id="invoice-amount-input" placeholder="Amount"><button id="invoice-add-btn">+ Add</button></div>
+        <div class="invoice-total">Total: ₹<span id="invoice-total-amount">0</span></div>
+      </div>
+      
+      <div class="checkout-block">
+        <h3>Next Appointment</h3>
+        <label class="next-appt-label">Suggested Date <span class="reason-text">${suggestion.reason}</span>
+          <input type="date" id="next-appt-date-input" value="${suggestion.suggestedDate ? suggestion.suggestedDate.toISOString().split('T')[0] : ''}">
+        </label>
+      </div>
+      
+      <div class="checkout-actions">
+        <button id="print-rx-btn" class="checkout-btn secondary">Print Rx</button>
+        <button id="print-invoice-btn" class="checkout-btn secondary">Print Invoice</button>
+        <button id="save-close-visit-btn" class="checkout-btn primary">Save & Close Visit</button>
+      </div>
+    </div>
+  `);
+
+  rxItems = []; invoiceItems = [];
+  
+  const renderRxList = () => { document.getElementById('rx-list').innerHTML = rxItems.map((r, i) => `<div class="rx-line-item">${r.drug} — ${r.dosage} <button data-idx="${i}" class="rx-remove-btn">✕</button></div>`).join(''); };
+  const renderInvList = () => { document.getElementById('invoice-list').innerHTML = invoiceItems.map((it, i) => `<div class="invoice-line-item">${it.item} — ₹${it.amount} <button data-idx="${i}" class="invoice-remove-btn">✕</button></div>`).join(''); document.getElementById('invoice-total-amount').textContent = invoiceItems.reduce((sum, it) => sum + Number(it.amount), 0); };
+
+  document.getElementById('rx-add-btn').addEventListener('click', () => {
+    const drug = document.getElementById('rx-drug-input').value.trim(), dosage = document.getElementById('rx-dosage-input').value.trim();
+    if(drug) { rxItems.push({drug, dosage}); document.getElementById('rx-drug-input').value=''; document.getElementById('rx-dosage-input').value=''; renderRxList(); }
+  });
+  
+  document.getElementById('invoice-add-btn').addEventListener('click', () => {
+    const item = document.getElementById('invoice-item-input').value.trim(), amount = document.getElementById('invoice-amount-input').value;
+    if(item && amount) { invoiceItems.push({item, amount: Number(amount)}); document.getElementById('invoice-item-input').value=''; document.getElementById('invoice-amount-input').value=''; renderInvList(); }
+  });
+  
+  document.getElementById('rx-list').addEventListener('click', (e) => { if(e.target.classList.contains('rx-remove-btn')) { rxItems.splice(Number(e.target.dataset.idx), 1); renderRxList(); }});
+  document.getElementById('invoice-list').addEventListener('click', (e) => { if(e.target.classList.contains('invoice-remove-btn')) { invoiceItems.splice(Number(e.target.dataset.idx), 1); renderInvList(); }});
+
+  // Print Handlers
+  document.getElementById('print-rx-btn').addEventListener('click', () => {
+    document.getElementById('print-rx-patient-name').textContent = currentPatient.fullName;
+    document.getElementById('print-rx-patient-age').textContent = getAgeFromDob(currentPatient.dob);
+    document.getElementById('print-rx-patient-sex').textContent = currentPatient.gender || '—';
+    document.getElementById('print-rx-date').textContent = new Date().toLocaleDateString();
+    document.getElementById('print-rx-items').innerHTML = rxItems.length ? rxItems.map(r => `<div class="rx-line"><strong>${r.drug}</strong> — ${r.dosage}</div>`).join('') : '—';
+    document.body.classList.add('printing-rx'); window.print(); document.body.classList.remove('printing-rx');
+  });
+
+  document.getElementById('print-invoice-btn').addEventListener('click', () => {
+    document.getElementById('print-invoice-patient-name').textContent = currentPatient.fullName;
+    document.getElementById('print-invoice-patient-age').textContent = getAgeFromDob(currentPatient.dob);
+    document.getElementById('print-invoice-date').textContent = new Date().toLocaleDateString();
+    document.getElementById('print-invoice-rows').innerHTML = invoiceItems.map(it => `<tr><td>${it.item}</td><td>₹${it.amount}</td></tr>`).join('');
+    document.getElementById('print-invoice-total').textContent = `₹${invoiceItems.reduce((s, it) => s + it.amount, 0)}`;
+    document.body.classList.add('printing-invoice'); window.print(); document.body.classList.remove('printing-invoice');
+  });
+
+  document.getElementById('save-close-visit-btn').addEventListener('click', async () => {
+    const visit = await window.KnhosVisits.getVisit(currentVisitId);
+    visit.status = 'completed';
+    visit.rxItems = rxItems;
+    visit.invoiceItems = invoiceItems;
+    visit.nextAppointmentDate = document.getElementById('next-appt-date-input').value;
+    visit.clinicalSummary = summary;
+    await window.KnhosVisits.updateVisit(visit);
+    
     localStorage.removeItem('knhos_active_visit');
-    window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}`);
-  });
-
-  document.getElementById('btn-leave-chair').addEventListener('click', () => {
-    window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patient.patientId)}`);
+    window.KnhosRouter.navigate(`#/patients/${currentPatient.patientId}`);
   });
 }
 
-/* ==========================================================
-   CONSENT & ROUTER
-   ========================================================== */
-async function renderNewConsent(patientId) {
-  const patient = await window.KnhosPatients.getPatient(patientId);
-  setView(`<div class="view-header"><h1>New Consent</h1></div><div class="card"><div class="form-grid"><div class="field" style="grid-column: 1 / -1;"><label>Consent Type *</label><select id="consent-type"><option value="General Medical Consent">General Medical Consent</option><option value="Dental Procedure Consent">Dental Procedure</option></select></div><div class="field" style="grid-column: 1 / -1;"><label>Patient Signature *</label><div class="signature-container"><canvas id="signature-pad"></canvas></div><div><button type="button" class="btn btn-secondary btn-sm" id="btn-clear-sig">Clear</button></div></div></div><div class="form-actions"><button type="button" class="btn btn-primary" id="btn-save-consent">Save Consent</button><button type="button" class="btn btn-secondary" id="cancel-new-consent">Cancel</button></div></div>`);
-  
-  document.getElementById('cancel-new-consent').addEventListener('click', () => window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}`));
-  const canvas = document.getElementById('signature-pad'); const ctx = canvas.getContext('2d');
-  function resizeCanvas() { const ratio = Math.max(window.devicePixelRatio || 1, 1); canvas.width = canvas.offsetWidth * ratio; canvas.height = canvas.offsetHeight * ratio; ctx.scale(ratio, ratio); ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#1f4d43'; }
-  resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-  let isDrawing = false;
-  function getCoordinates(e) { const rect = canvas.getBoundingClientRect(); if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }; return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
-  function startDrawing(e) { e.preventDefault(); isDrawing = true; const { x, y } = getCoordinates(e); ctx.beginPath(); ctx.moveTo(x, y); }
-  function draw(e) { e.preventDefault(); if (!isDrawing) return; const { x, y } = getCoordinates(e); ctx.lineTo(x, y); ctx.stroke(); }
-  function stopDrawing(e) { e.preventDefault(); isDrawing = false; }
-  canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
-  canvas.addEventListener('touchstart', startDrawing, { passive: false }); canvas.addEventListener('touchmove', draw, { passive: false }); canvas.addEventListener('touchend', stopDrawing, { passive: false });
-  document.getElementById('btn-clear-sig').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
-  
-  document.getElementById('btn-save-consent').addEventListener('click', async () => {
-    try { await window.KnhosConsents.createConsent({ patientId, type: document.getElementById('consent-type').value, text: `I consent.`, signatureData: canvas.toDataURL('image/png') }); window.KnhosRouter.navigate(`#/patients/${encodeURIComponent(patientId)}`); } catch (err) { alert('Error: ' + err.message); }
+// --- GLOBAL EVENT LISTENERS (Run once to prevent memory leaks) ---
+document.getElementById('tooth-modal-close').addEventListener('click', () => document.getElementById('tooth-modal-backdrop').classList.add('hidden'));
+
+document.querySelectorAll('.tooth-tab-btn').forEach((btn, idx) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tooth-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tooth-tab-panel').forEach(p => p.classList.add('hidden'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tooth-tab-panel')[idx].classList.remove('hidden');
   });
-}
+});
 
-function renderBackup() { setView(`<div class="view-header"><h1>Backup</h1></div><div class="card"><p>Placeholder module</p></div>`); }
+document.getElementById('tooth-modal-save').addEventListener('click', () => {
+  if (!activeToothNumber) return;
+  toothRecords[activeToothNumber] = { 
+    ...(toothRecords[activeToothNumber] || {}), 
+    finding: document.getElementById('finding-select').value, 
+    txPlanned: document.getElementById('tx-planned-select').value, 
+    txDone: document.getElementById('tx-done-select').value 
+  };
+  document.getElementById('tooth-modal-backdrop').classList.add('hidden');
+  renderOdontogram();
+});
 
+document.getElementById('link-consent-btn').addEventListener('click', async () => {
+  if (!activeToothNumber || !currentPatient) return;
+  await window.KnhosConsents.createConsent({ 
+    patientId: currentPatient.patientId, 
+    type: 'Dental Procedure', 
+    text: `Consent for Tx on Tooth #${activeToothNumber}`,
+    signatureData: '' // Will hook into canvas logic in future, valid stub for now
+  });
+  toothRecords[activeToothNumber] = toothRecords[activeToothNumber] || {};
+  toothRecords[activeToothNumber].consentLinked = true;
+  document.getElementById('consent-linked-badge').classList.remove('hidden');
+});
+
+// --- ROUTER INIT ---
 window.KnhosRouter.registerRoute('#/home', renderHome);
-window.KnhosRouter.registerRoute('#/patients/new', () => renderNewPatient(pendingRegistration));
-window.KnhosRouter.registerRoute('#/patients', () => renderPatientsListOrSearch('#/patients', 'Patients', ''));
-window.KnhosRouter.registerRoute('#/search', () => renderPatientsListOrSearch('#/search', 'Search', ''));
-window.KnhosRouter.registerRoute('#/queue', renderQueue);
-window.KnhosRouter.registerRoute('#/backup', renderBackup);
+window.KnhosRouter.registerRoute('#/patients/:id', (params) => renderPatientProfile(params.id));
 window.KnhosRouter.registerRoute('#/patients/:id/visits/new', (params) => renderNewVisit(params.id));
-window.KnhosRouter.registerRoute('#/patients/:id/consents/new', (params) => renderNewConsent(params.id));
+window.KnhosRouter.registerRoute('#/queue', renderQueue);
 window.KnhosRouter.registerRoute('#/visits/:id', (params) => renderClinicalRecord(params.id));
-window.KnhosRouter.registerRoute('#/patients/:id', (params, query) => renderPatientProfile(params.id, query.get('created') === '1'));
-navButtons.forEach((btn) => btn.addEventListener('click', () => { pendingRegistration = null; window.KnhosRouter.navigate(btn.dataset.route); }));
-document.getElementById('brand-home-btn').addEventListener('click', () => window.KnhosRouter.navigate('#/home'));
+navButtons.forEach((btn) => btn.addEventListener('click', () => window.KnhosRouter.navigate(btn.dataset.route)));
 
 async function initApp() {
-  try { await window.KnhosDB.openDatabase(); } catch (err) { alert('DB Error'); return; }
+  await window.KnhosDB.openDatabase();
   window.KnhosRouter.startRouter();
-  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js', { scope: './' }).catch(()=>{}); }
 }
 initApp();
 })();
