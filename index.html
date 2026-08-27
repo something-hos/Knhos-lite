@@ -4,12 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <title>KNHOS Lite</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="KNHOS Lite">
-<meta name="theme-color" content="#1f4d43">
-<link rel="manifest" href="pwa/manifest.json">
-<link rel="apple-touch-icon" href="pwa/icon-192.png">
 <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -18,37 +12,142 @@
   <header id="app-header">
     <div class="header-inner">
       <button class="brand" id="brand-home-btn" type="button">
-        <span class="brand-mark">K</span>
-        <span class="brand-text">
-          <span class="brand-title">KNHOS Lite</span>
-          <span class="brand-subtitle">Temporary patient record system</span>
-        </span>
+        <span class="brand-title">KNHOS Lite</span>
       </button>
-      
-      <nav id="main-nav" aria-label="Main navigation">
+      <nav id="main-nav">
         <button class="nav-btn" data-route="#/home">Home</button>
         <button class="nav-btn" data-route="#/patients">Patients</button>
         <button class="nav-btn" data-route="#/patients/new">New Patient</button>
-        <button class="nav-btn" data-route="#/search">Search</button>
-        <button class="nav-btn nav-btn-backup" data-route="#/backup">Backup / Export</button>
       </nav>
     </div>
-    
-    <!-- FIX: Moved to its own dedicated sub-bar to prevent button overlapping -->
-    <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
   </header>
+
+  <!-- STEP 1: CONTEXT BAR SIBLING (Prevents iPad touch-shield issues) -->
+  <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
 
   <main id="app-main">
     <div id="view-root"></div>
   </main>
 </div>
 
+<!-- STEP 2: SECURE MODAL ROOT -->
+<div id="modal-root">
+  <div id="tooth-modal-backdrop" class="modal-backdrop hidden">
+    <div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
+      <div class="tooth-modal-header">
+        <span id="tooth-modal-title">Tooth #—</span>
+        <button id="tooth-modal-close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="tooth-modal-tabs" role="tablist">
+        <button class="tooth-tab-btn active" data-tab="findings">Findings</button>
+        <button class="tooth-tab-btn" data-tab="tx-planned">Tx Planned</button>
+        <button class="tooth-tab-btn" data-tab="tx-done">Tx Done Today</button>
+      </div>
+
+      <div class="tooth-tab-panel" data-panel="findings">
+        <label>Finding
+          <select id="finding-select">
+            <option value="">— Select —</option>
+            <option value="deep-caries">Deep Caries</option>
+            <option value="moderate-caries">Moderate Caries</option>
+            <option value="mobile">Mobile</option>
+            <option value="fractured">Fractured</option>
+            <option value="periapical-abscess">Periapical Abscess</option>
+            <option value="missing">Missing</option>
+            <option value="impacted">Impacted</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tooth-tab-panel hidden" data-panel="tx-planned">
+        <label>Treatment Planned
+          <select id="tx-planned-select">
+            <option value="">— Select —</option>
+            <option value="rct">RCT (Root Canal Treatment)</option>
+            <option value="extraction">Extraction</option>
+            <option value="crown-prep">Crown Prep</option>
+            <option value="filling">Filling / Restoration</option>
+            <option value="braces">Braces / Ortho</option>
+            <option value="scaling">Scaling</option>
+          </select>
+        </label>
+        <button id="link-consent-btn" class="link-consent-btn">🖊 Link Consent</button>
+        <span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
+      </div>
+
+      <div class="tooth-tab-panel hidden" data-panel="tx-done">
+        <label>Treatment Done Today
+          <select id="tx-done-select">
+            <option value="">— Select —</option>
+            <option value="excavation">Excavation</option>
+            <option value="rct-started">RCT Started</option>
+            <option value="rct-completed">RCT Completed</option>
+            <option value="extraction-done">Extraction Done</option>
+            <option value="filling-done">Filling Placed</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="tooth-modal-footer">
+        <button id="tooth-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 4: PRINT CONTAINERS -->
+<div id="print-rx-doc" class="print-doc">
+  <div class="print-watermark">Rx</div>
+  <div class="print-header">
+    <div class="print-clinic-name">KNHOS Dental Clinic</div>
+    <div class="print-branches">Karur Branch · Sengal Branch</div>
+  </div>
+  <div class="print-doctor-line">[Dr. Name & Qualifications]</div>
+  <hr class="print-rule">
+  <div class="print-patient-demo">
+    <span id="print-rx-patient-name"></span> · 
+    Age: <span id="print-rx-patient-age"></span> · 
+    Sex: <span id="print-rx-patient-sex"></span> · 
+    Date: <span id="print-rx-date"></span>
+  </div>
+  <div class="print-rx-symbol">℞</div>
+  <div id="print-rx-items" class="print-rx-items"></div>
+  <div class="print-signature-block">
+    <div class="print-signature-line"></div>
+    <div class="print-signature-caption">Doctor's Signature</div>
+  </div>
+</div>
+
+<div id="print-invoice-doc" class="print-doc">
+  <div class="print-header">
+    <div class="print-clinic-name">KNHOS Dental Clinic</div>
+    <div class="print-branches">Karur Branch · Sengal Branch</div>
+  </div>
+  <div class="print-doctor-line">OFFICIAL INVOICE</div>
+  <hr class="print-rule">
+  <div class="print-patient-demo">
+    <span id="print-invoice-patient-name"></span> · 
+    Age: <span id="print-invoice-patient-age"></span> · 
+    Date: <span id="print-invoice-date"></span>
+  </div>
+  <table class="print-invoice-table">
+    <thead><tr><th>Item / Procedure</th><th>Amount (₹)</th></tr></thead>
+    <tbody id="print-invoice-rows"></tbody>
+    <tfoot><tr><td>Total</td><td id="print-invoice-total"></td></tr></tfoot>
+  </table>
+  <div class="print-signature-block">
+    <div class="print-signature-line"></div>
+    <div class="print-signature-caption">Authorized Signature</div>
+  </div>
+</div>
+
 <script src="js/db.js"></script>
 <script src="js/idgen.js"></script>
 <script src="js/patients.js"></script>
 <script src="js/router.js"></script>
-<script src="js/visits.js"></script>
 <script src="js/consents.js"></script>
+<script src="js/visits.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
