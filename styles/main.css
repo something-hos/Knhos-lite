@@ -2,7 +2,7 @@
   --color-bg: #f6f7f5; --color-surface: #ffffff; --color-border: #dde2df;
   --color-text: #1c2521; --color-primary: #1f4d43; --color-primary-dark: #143530;
   --color-danger: #a3352a; --radius: 10px; --touch-min: 48px;
-} 
+}
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, sans-serif; background: var(--color-bg); color: var(--color-text); -webkit-tap-highlight-color: transparent; }
 .hidden { display: none !important; }
