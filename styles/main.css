@@ -6,7 +6,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, sans-serif; background: var(--color-bg); color: var(--color-text); -webkit-tap-highlight-color: transparent; }
 
-/* Utility: referenced throughout via classList.add/remove('hidden'). Not present in
+/* Utility: referenced throughout via classList.add/remove ('hidden'). Not present in
    the original baseline stylesheet, so it is added here explicitly. */
 .hidden { display: none !important; }
 
