@@ -22,7 +22,7 @@
     </div>
   </header>
 
-  <!-- STEP 1: CONTEXT BAR SIBLING (Prevents iPad touch-shield issues) -->
+  <!-- STEP 1: Context bar is a SIBLING of header, not nested inside it -->
   <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
 
   <main id="app-main">
@@ -30,19 +30,19 @@
   </main>
 </div>
 
-<!-- STEP 2: SECURE MODAL ROOT -->
+<!-- STEP 2: Modal root, appended after #app-shell so it always overlays every route -->
 <div id="modal-root">
   <div id="tooth-modal-backdrop" class="modal-backdrop hidden">
     <div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
       <div class="tooth-modal-header">
         <span id="tooth-modal-title">Tooth #—</span>
-        <button id="tooth-modal-close" aria-label="Close">✕</button>
+        <button id="tooth-modal-close" type="button" aria-label="Close">✕</button>
       </div>
 
       <div class="tooth-modal-tabs" role="tablist">
-        <button class="tooth-tab-btn active" data-tab="findings">Findings</button>
-        <button class="tooth-tab-btn" data-tab="tx-planned">Tx Planned</button>
-        <button class="tooth-tab-btn" data-tab="tx-done">Tx Done Today</button>
+        <button class="tooth-tab-btn active" type="button" data-tab="findings">Findings</button>
+        <button class="tooth-tab-btn" type="button" data-tab="tx-planned">Tx Planned</button>
+        <button class="tooth-tab-btn" type="button" data-tab="tx-done">Tx Done Today</button>
       </div>
 
       <div class="tooth-tab-panel" data-panel="findings">
@@ -72,7 +72,7 @@
             <option value="scaling">Scaling</option>
           </select>
         </label>
-        <button id="link-consent-btn" class="link-consent-btn">🖊 Link Consent</button>
+        <button id="link-consent-btn" type="button" class="link-consent-btn">🖊 Link Consent</button>
         <span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
       </div>
 
@@ -90,25 +90,25 @@
       </div>
 
       <div class="tooth-modal-footer">
-        <button id="tooth-modal-save">Save</button>
+        <button id="tooth-modal-save" type="button">Save</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- STEP 4: PRINT CONTAINERS -->
+<!-- STEP 4: Printable documents. Hidden on screen; shown only via body.printing-* in @media print -->
 <div id="print-rx-doc" class="print-doc">
   <div class="print-watermark">Rx</div>
   <div class="print-header">
     <div class="print-clinic-name">KNHOS Dental Clinic</div>
-    <div class="print-branches">Karur Branch · Sengal Branch</div>
+    <div class="print-branches">Karur Branch &middot; Sengal Branch</div>
   </div>
-  <div class="print-doctor-line">[Dr. Name & Qualifications]</div>
+  <div class="print-doctor-line">[Dr. Name &amp; Qualifications]</div>
   <hr class="print-rule">
   <div class="print-patient-demo">
-    <span id="print-rx-patient-name"></span> · 
-    Age: <span id="print-rx-patient-age"></span> · 
-    Sex: <span id="print-rx-patient-sex"></span> · 
+    <span id="print-rx-patient-name"></span> &middot;
+    Age: <span id="print-rx-patient-age"></span> &middot;
+    Sex: <span id="print-rx-patient-sex"></span> &middot;
     Date: <span id="print-rx-date"></span>
   </div>
   <div class="print-rx-symbol">℞</div>
@@ -122,13 +122,13 @@
 <div id="print-invoice-doc" class="print-doc">
   <div class="print-header">
     <div class="print-clinic-name">KNHOS Dental Clinic</div>
-    <div class="print-branches">Karur Branch · Sengal Branch</div>
+    <div class="print-branches">Karur Branch &middot; Sengal Branch</div>
   </div>
   <div class="print-doctor-line">OFFICIAL INVOICE</div>
   <hr class="print-rule">
   <div class="print-patient-demo">
-    <span id="print-invoice-patient-name"></span> · 
-    Age: <span id="print-invoice-patient-age"></span> · 
+    <span id="print-invoice-patient-name"></span> &middot;
+    Age: <span id="print-invoice-patient-age"></span> &middot;
     Date: <span id="print-invoice-date"></span>
   </div>
   <table class="print-invoice-table">
