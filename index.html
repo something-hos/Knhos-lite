@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-
 <div id="app-shell">
   <header id="app-header">
     <div class="header-inner">
@@ -22,7 +21,7 @@
     </div>
   </header>
 
-  <!-- STEP 1: Context bar is a SIBLING of header, not nested inside it -->
+  <!-- Context bar is a sibling of the header, not nested inside it -->
   <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
 
   <main id="app-main">
@@ -30,7 +29,7 @@
   </main>
 </div>
 
-<!-- STEP 2: Modal root, appended after #app-shell so it always overlays every route -->
+<!-- Modal root, appended after #app-shell so it always overlays every route -->
 <div id="modal-root">
   <div id="tooth-modal-backdrop" class="modal-backdrop hidden">
     <div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
@@ -72,8 +71,22 @@
             <option value="scaling">Scaling</option>
           </select>
         </label>
-        <button id="link-consent-btn" type="button" class="link-consent-btn">🖊 Link Consent</button>
-        <span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
+
+        <div id="tooth-consent-block">
+          <button id="link-consent-btn" type="button" class="link-consent-btn">🖊 Link Consent (Capture Signature)</button>
+          <span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
+
+          <div id="tooth-signature-capture" class="tooth-signature-capture hidden">
+            <div class="signature-pad-wrapper small">
+              <canvas id="tooth-signature-pad"></canvas>
+            </div>
+            <div class="tooth-signature-actions">
+              <button type="button" id="tooth-sig-clear-btn" class="btn btn-secondary btn-sm">Clear</button>
+              <button type="button" id="tooth-sig-cancel-btn" class="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" id="tooth-sig-save-btn" class="btn btn-primary btn-sm">Save Signature</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="tooth-tab-panel hidden" data-panel="tx-done">
@@ -96,7 +109,25 @@
   </div>
 </div>
 
-<!-- STEP 4: Printable documents. Hidden on screen; shown only via body.printing-* in @media print -->
+<!-- Rx datalists: defined ONCE here. Referenced via list="..." from the Rx
+     inputs rendered by app.js. app.js must never create its own copies of
+     these ids — duplicate <datalist> ids are invalid HTML and only the
+     first one in document order is guaranteed to be honored by Safari. -->
+<datalist id="rx-drug-datalist">
+  <option value="Amoxicillin 500mg">
+  <option value="Metronidazole 400mg">
+  <option value="Ibuprofen 400mg">
+  <option value="Paracetamol 500mg">
+  <option value="Chlorhexidine Mouthwash">
+</datalist>
+<datalist id="rx-dosage-datalist">
+  <option value="1-0-1 x 3 days">
+  <option value="1-1-1 x 5 days">
+  <option value="SOS">
+  <option value="TDS">
+</datalist>
+
+<!-- Printable documents. Hidden on screen; shown only via body.printing-* in @media print -->
 <div id="print-rx-doc" class="print-doc">
   <div class="print-watermark">Rx</div>
   <div class="print-header">
