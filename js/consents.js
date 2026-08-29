@@ -10,3 +10,5 @@
   }
   window.KnhosConsents = { createConsent, listConsentsForPatient };
 })();
+
+
