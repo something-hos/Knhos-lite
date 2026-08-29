@@ -1,7 +1,7 @@
 (function () {
 'use strict';
 const { dbAdd, dbGet, dbGetAll, dbGetAllByIndex, dbPut } = window.KnhosDB;
- 
+  
 async function createVisit({ patientId, department, visitDate, reason }) {
   const visitId = await window.KnhosIdGen.getNextId('visit');
   const record = {
