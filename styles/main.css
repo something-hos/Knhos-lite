@@ -5,10 +5,16 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, sans-serif; background: var(--color-bg); color: var(--color-text); -webkit-tap-highlight-color: transparent; }
+
+/* Utility: referenced throughout via classList.add/remove('hidden'). Not present in
+   the original baseline stylesheet, so it is added here explicitly. */
 .hidden { display: none !important; }
 
 #app-shell { display: flex; flex-direction: column; min-height: 100vh; }
-#app-header { background: var(--color-primary); color: #fff; position: sticky; top: 0; z-index: 100; }
+
+/* isolation:isolate ensures the header's own internal stacking (nav buttons etc.)
+   never leaks out and interferes with siblings like the context bar or modal. */
+#app-header { background: var(--color-primary); color: #fff; position: sticky; top: 0; z-index: 100; isolation: isolate; }
 .header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
 .brand { background: none; border: none; color: #fff; cursor: pointer; font-size: 1.2rem; font-weight: bold; }
 .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer; min-height: var(--touch-min); }
@@ -20,61 +26,120 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .btn { padding: 12px 20px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; min-height: var(--touch-min); }
 .btn-primary { background: var(--color-primary); color: #fff; }
 .btn-secondary { background: #fff; border: 1px solid var(--color-border); }
-.patient-row { width: 100%; text-align: left; background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field input, .field select, .field textarea { border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 14px; min-height: var(--touch-min); }
+.view-header { margin-bottom: 16px; }
+.view-header h1 { margin: 0 0 4px; }
+.form-actions { margin-top: 18px; display: flex; gap: 10px; }
+.btn-sm { min-height: 40px; padding: 8px 14px; font-size: 0.9rem; }
 
-/* STEP 1: Context Bar */
-.context-bar-wrapper { background: var(--color-primary-dark); min-height: 54px; padding: 10px 20px; display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; position: relative; z-index: 5; }
-.context-bar-wrapper:empty { display: none; }
-.context-btn { display: flex; align-items: center; gap: 8px; border: none; border-radius: 20px; padding: 8px 18px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: transform 0.15s; min-height: 44px; }
+.signature-pad-wrapper {
+  border: 2px dashed var(--color-primary);
+  border-radius: 10px;
+  background: #fff;
+  touch-action: none;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+#signature-pad { width: 100%; height: 250px; display: block; cursor: crosshair; }
+
+/* ---------- STEP 1: Context Bar ---------- */
+.context-bar-wrapper {
+  background: var(--color-primary-dark);
+  min-height: 54px;
+  padding: 10px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 5; /* below header(100), above #view-root content(auto) */
+  isolation: isolate;
+}
+.context-btn {
+  display: flex; align-items: center; gap: 8px;
+  border: none; border-radius: 20px; padding: 8px 18px;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  min-height: 44px; touch-action: manipulation;
+}
 .btn-waiting { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; box-shadow: 0 2px 8px rgba(230, 81, 0, 0.2); }
 .btn-waiting .badge { background: #e65100; color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 0.85rem; }
 .btn-waiting-empty { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); }
 .btn-active-patient { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; animation: pulse 2s infinite; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
 
-/* STEP 2: Odontogram & Modal */
+/* ---------- Patients list / profile ---------- */
+.patient-row { width: 100%; text-align: left; background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.visit-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.visit-status-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: capitalize; }
+.visit-status-waiting { background: #fff3e0; color: #e65100; }
+.visit-status-in-progress { background: #e3f2fd; color: #0d47a1; }
+.visit-status-completed { background: #e8f5e9; color: #1b5e20; }
+
+/* ---------- STEP 2: Odontogram & Modal ---------- */
+.clinical-record-header { margin-bottom: 8px; }
+.clinical-record-header h1 { margin-bottom: 2px; }
+.visit-meta { color: #6b7280; font-size: 13px; }
+
 .dentition-toggle { display: flex; gap: 8px; padding: 12px 16px; justify-content: center; }
-.dent-toggle-btn { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; font-weight: 600; cursor: pointer; }
+.dent-toggle-btn { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; font-weight: 600; cursor: pointer; touch-action: manipulation; }
 .dent-toggle-btn.active { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+
 #odontogram-container { display: flex; flex-direction: column; gap: 24px; padding: 16px; align-items: center; }
 .arch-wrapper { position: relative; width: 100%; max-width: 600px; text-align: center; }
 .arch-label { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: bold; margin-bottom: 8px; }
 #upper-arch-svg, #lower-arch-svg { width: 100%; height: auto; overflow: visible; }
+
 .tooth-shape { fill: #f9fafb; stroke: #9ca3af; stroke-width: 1.5; transition: fill 0.15s; pointer-events: none; }
 .tooth-shape.has-finding { fill: #fecaca; stroke: #dc2626; }
 .tooth-shape.has-tx-planned { stroke: #2563eb; stroke-width: 2; }
 .tooth-shape.has-tx-done { fill: #bbf7d0; stroke: #16a34a; }
-.tooth-hit-area { fill: transparent; cursor: pointer; pointer-events: all; }
+/* Invisible 44px-radius-equivalent hit area (r=22 -> 44px diameter): keeps the tap
+   target reliable on iPad even though the visible tooth path is much smaller. */
+.tooth-hit-area { fill: transparent; cursor: pointer; pointer-events: all; touch-action: manipulation; }
 .tooth-hit-area:active + .tooth-shape { fill: #dbeafe; }
 .tooth-number-label { font-size: 11px; fill: #4b5563; text-anchor: middle; pointer-events: none; font-weight: bold; }
 
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.tooth-modal { background: #fff; border-radius: 16px; width: min(480px, 92vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.odontogram-actions { display: flex; justify-content: center; padding: 12px 16px 24px; }
+
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 9999; /* always above header(100) and context bar(5) regardless of active route */
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-backdrop.hidden { display: none; }
+.tooth-modal { background: #fff; border-radius: 16px; width: min(480px, 92vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); -webkit-overflow-scrolling: touch; }
 .tooth-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 700; font-size: 18px; }
 #tooth-modal-close { min-width: 44px; min-height: 44px; border: none; background: none; font-size: 20px; cursor: pointer; }
 .tooth-modal-tabs { display: flex; border-bottom: 1px solid #e5e7eb; }
 .tooth-tab-btn { flex: 1; min-height: 44px; border: none; background: none; font-weight: 600; color: #6b7280; border-bottom: 3px solid transparent; cursor: pointer; }
 .tooth-tab-btn.active { color: #1e3a8a; border-bottom-color: #1e3a8a; }
 .tooth-tab-panel { padding: 20px; }
+.tooth-tab-panel.hidden { display: none; }
 .tooth-tab-panel label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
 .tooth-tab-panel select { min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 15px; }
 .link-consent-btn { margin-top: 14px; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #1e3a8a; background: #eff6ff; color: #1e3a8a; font-weight: 600; cursor: pointer; }
 .consent-badge { display: inline-block; margin-top: 10px; color: #16a34a; font-weight: 700; }
+.consent-badge.hidden { display: none; }
 .tooth-modal-footer { padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; }
 #tooth-modal-save { min-height: 44px; padding: 0 20px; border-radius: 8px; border: none; background: #1e3a8a; color: #fff; font-weight: 700; cursor: pointer; }
 
-/* STEP 4: Checkout */
+/* ---------- STEP 4: Checkout ---------- */
 .checkout-screen { max-width: 800px; margin: 0 auto; padding: 20px 0 100px; }
+.checkout-screen.hidden { display: none; }
 .checkout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .checkout-block { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
 .summary-readonly { background: #f9fafb; border-radius: 8px; padding: 12px; line-height: 1.5; font-size: 15px; }
 .rx-add-row, .invoice-add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .rx-add-row input, .invoice-add-row input { flex: 1; min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid #d1d5db; }
 .rx-add-row button, .invoice-add-row button { min-height: 44px; padding: 0 16px; border-radius: 8px; border: none; background: #1e3a8a; color: #fff; font-weight: 600; cursor: pointer; }
-.rx-line-item, .invoice-line-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; align-items: center; }
+.rx-line-item, .invoice-line-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; align-items: center; }
 .rx-remove-btn, .invoice-remove-btn { background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: bold; }
 .invoice-total { margin-top: 10px; font-weight: 700; text-align: right; font-size: 1.1rem; }
 .next-appt-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
@@ -85,16 +150,33 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .checkout-btn.secondary { background: #eff6ff; color: #1e3a8a; border: 1px solid #1e3a8a; }
 .checkout-btn.primary { background: #16a34a; color: #fff; }
 
-/* STEP 4: Print Engine */
+/* ---------- STEP 4: Print Engine ---------- */
 .print-doc { display: none; }
+
 @media print {
+  /* Hide the entire live app; only a printable doc (opted in via body class) shows */
   #app-shell, #modal-root { display: none !important; }
   html, body { background: #fff !important; margin: 0; padding: 0; }
   .print-doc { display: none; }
-  body.printing-rx #print-rx-doc, body.printing-invoice #print-invoice-doc {
-    display: block !important; position: relative; width: 210mm; min-height: 297mm; padding: 20mm 18mm; box-sizing: border-box; color: #111; font-family: 'Georgia', serif;
+
+  body.printing-rx #print-rx-doc,
+  body.printing-invoice #print-invoice-doc {
+    display: block !important;
+    position: relative;
+    width: 210mm;
+    min-height: 297mm; /* A4 */
+    padding: 20mm 18mm;
+    box-sizing: border-box;
+    color: #111;
+    font-family: 'Georgia', serif;
   }
-  .print-watermark { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 140px; font-weight: 900; color: rgba(30, 58, 138, 0.06); z-index: 0; pointer-events: none; }
+
+  .print-watermark {
+    position: absolute; top: 40%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 140px; font-weight: 900; color: rgba(30, 58, 138, 0.06);
+    z-index: 0; pointer-events: none;
+  }
   .print-header { text-align: center; margin-bottom: 4mm; }
   .print-clinic-name { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
   .print-branches { font-size: 12px; color: #444; margin-top: 2px; }
@@ -102,6 +184,7 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
   .print-rule { border: none; border-top: 1.5px solid #111; margin: 6mm 0; }
   .print-patient-demo { font-size: 13px; margin-bottom: 8mm; }
   .print-rx-symbol { font-size: 28px; font-weight: 700; margin-bottom: 4mm; }
+  /* min-height keeps the signature line pinned to the page bottom even on a short Rx */
   .print-rx-items { font-size: 14px; line-height: 2; min-height: 140mm; }
   .print-rx-items .rx-line { border-bottom: 1px dotted #999; padding: 4px 0; }
   .print-invoice-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 100mm; }
