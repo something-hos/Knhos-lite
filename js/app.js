@@ -2,7 +2,7 @@
 'use strict';
 const viewRoot = document.getElementById('view-root');
 const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
- 
+
 function escapeHtml(str) {
   return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
