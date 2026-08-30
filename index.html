@@ -29,9 +29,12 @@
   </main>
 </div>
 
-<!-- Modal root, appended after #app-shell so it always overlays every route -->
+<!-- Modal root, appended after #app-shell so it always overlays every route.
+     "closed" (not the generic "hidden" utility) is used here on purpose:
+     the panel needs to animate out via transform, which requires it to stay
+     in the layout (display != none) while closed. -->
 <div id="modal-root">
-  <div id="tooth-modal-backdrop" class="modal-backdrop hidden">
+  <div id="tooth-modal-backdrop" class="modal-backdrop closed">
     <div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
       <div class="tooth-modal-header">
         <span id="tooth-modal-title">Tooth #—</span>
@@ -110,9 +113,7 @@
 </div>
 
 <!-- Rx datalists: defined ONCE here. Referenced via list="..." from the Rx
-     inputs rendered by app.js. app.js must never create its own copies of
-     these ids — duplicate <datalist> ids are invalid HTML and only the
-     first one in document order is guaranteed to be honored by Safari. -->
+     inputs rendered by app.js. -->
 <datalist id="rx-drug-datalist">
   <option value="Amoxicillin 500mg">
   <option value="Metronidazole 400mg">
@@ -125,6 +126,21 @@
   <option value="1-1-1 x 5 days">
   <option value="SOS">
   <option value="TDS">
+</datalist>
+
+<!-- Stage 2: Invoice item datalist for common procedures. Referenced via
+     list="invoice-item-datalist" from the invoice-item-input rendered by
+     app.js. Item names only - no invented prices, since actual pricing is
+     clinic-specific business data. -->
+<datalist id="invoice-item-datalist">
+  <option value="Consultation">
+  <option value="Scaling & Polishing">
+  <option value="Filling / Restoration">
+  <option value="Root Canal Treatment (RCT)">
+  <option value="Extraction">
+  <option value="Crown Prep">
+  <option value="X-Ray (IOPA)">
+  <option value="Braces / Ortho Adjustment">
 </datalist>
 
 <!-- Printable documents. Hidden on screen; shown only via body.printing-* in @media print -->
