@@ -56,6 +56,12 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .visit-status-in-progress { background: #e3f2fd; color: #0d47a1; }
 .visit-status-completed { background: #e8f5e9; color: #1b5e20; }
 
+/* ---------- Stage 2: dense Waiting Room queue view ---------- */
+.queue-view .card { padding: 12px 16px; margin-bottom: 8px; }
+.queue-view .view-header { margin-bottom: 10px; }
+.queue-view .view-header h1 { font-size: 1.3rem; }
+#queue-list { max-height: calc(100vh - 230px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
 /* ---------- Odontogram & Modal ---------- */
 .clinical-record-header { margin-bottom: 8px; }
 .clinical-record-header h1 { margin-bottom: 2px; }
@@ -63,10 +69,24 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .dentition-toggle { display: flex; gap: 8px; padding: 12px 16px; justify-content: center; }
 .dent-toggle-btn { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; font-weight: 600; cursor: pointer; touch-action: manipulation; }
 .dent-toggle-btn.active { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+
+/* Stage 3: "liquid" layout shift - the whole odontogram view compresses via
+   a transitioning margin (not opacity) to make room for the docked tooth
+   panel on the right, so the arches visually shift left when a tooth opens. */
+.odontogram-view { transition: margin-right 0.3s ease; }
+.odontogram-view.panel-open { margin-right: min(420px, 92vw); }
+@media (max-width: 900px) { .odontogram-view.panel-open { margin-right: 0; } }
+
 #odontogram-container { display: flex; flex-direction: column; gap: 24px; padding: 16px; align-items: center; }
 .arch-wrapper { position: relative; width: 100%; max-width: 600px; text-align: center; }
 .arch-label { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: bold; margin-bottom: 8px; }
 #upper-arch-svg, #lower-arch-svg { width: 100%; height: auto; overflow: visible; }
+
+/* .tooth-group is the <g> wrapper around each tooth. It carries a JS-set
+   `transform` attribute (position/rotation, plus scale(1.8) when selected).
+   The CSS transition below animates changes to that attribute smoothly -
+   this is how the selected tooth "enlarges" without any opacity/fade. */
+.tooth-group { transition: transform 0.25s ease; }
 
 .tooth-shape { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; pointer-events: none; }
 .tooth-shape.has-finding { fill: #fef2f2; stroke: #dc2626; stroke-width: 2; }
@@ -78,9 +98,24 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .tooth-number-label { font-size: 11px; fill: #4b5563; text-anchor: middle; pointer-events: none; font-weight: bold; }
 .odontogram-actions { display: flex; justify-content: center; padding: 12px 16px 24px; }
 
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.modal-backdrop.hidden { display: none; }
-.tooth-modal { background: #fff; border-radius: 16px; width: min(480px, 92vw); max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); -webkit-overflow-scrolling: touch; }
+/* Stage 3: the tooth panel is now a right-docked slide-in surface, not a
+   centered fade-in modal. The backdrop is a transparent, full-screen click
+   catcher (used to close on outside-tap) - it is never itself faded; only
+   its pointer-events toggle. The panel's transform is what animates. */
+.modal-backdrop { position: fixed; inset: 0; background: transparent; z-index: 9999; pointer-events: none; }
+.modal-backdrop:not(.closed) { pointer-events: auto; }
+.tooth-modal {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(420px, 92vw);
+  background: #fff;
+  box-shadow: -8px 0 30px rgba(0,0,0,0.18);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-backdrop:not(.closed) .tooth-modal { transform: translateX(0); }
 .tooth-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 700; font-size: 18px; }
 #tooth-modal-close { min-width: 44px; min-height: 44px; border: none; background: none; font-size: 20px; cursor: pointer; }
 .tooth-modal-tabs { display: flex; border-bottom: 1px solid #e5e7eb; }
@@ -99,6 +134,24 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .tooth-signature-actions .btn { flex: 1; min-width: 90px; }
 .tooth-modal-footer { padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; }
 #tooth-modal-save { min-height: 44px; padding: 0 20px; border-radius: 8px; border: none; background: #1e3a8a; color: #fff; font-weight: 700; cursor: pointer; }
+
+/* Stage 3: live clinical summary, docked bottom-left, updates instantly as
+   findings/treatments are saved - no need to wait for "Finish Treatment". */
+.live-summary-panel {
+  position: fixed; left: 16px; bottom: 16px;
+  width: min(320px, calc(100vw - 32px));
+  max-height: 40vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  z-index: 50;
+}
+.live-summary-panel h4.panel-title { margin: 0 0 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-primary); }
+.live-summary-panel .muted-text { color: #6b7280; font-size: 0.9rem; margin: 0; }
 
 /* ---------- Checkout ---------- */
 .checkout-screen { max-width: 800px; margin: 0 auto; padding: 20px 0 100px; }
