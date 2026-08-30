@@ -55,6 +55,13 @@
      Also refreshes the Home screen's live waiting feed, if the
      Home view happens to be mounted, so nothing needs a hard
      browser refresh to stay current.
+
+     Bug fix (Stage 1): the active-visit pill is re-validated
+     against IndexedDB - never trusted from stale memory - every
+     single time this runs, which includes every hashchange (so
+     every navigation between patient dashboards). That is what
+     guarantees an in-progress visit's status/pill survives you
+     browsing away to a different patient and back.
      ========================================================== */
   async function updateContextBar() {
     const bar = document.getElementById('dynamic-context-bar');
@@ -171,16 +178,25 @@
     return positions;
   }
 
-  // Bug fix #5: a bordered "tooth card" (rect + crown/root divider line)
-  // reads as a standard clinical charting box instead of an organic blob.
-  function renderArch(svgEl, toothNumbers, isUpper) {
+  // Bug fix carried forward: bordered "tooth card" (rect + crown/root divider
+  // line) instead of an organic blob.
+  //
+  // Stage 3 addition: `selectedTooth` - when a tooth number matches, an extra
+  // scale() is appended to its transform attribute, and the CSS transition on
+  // .tooth-group (see main.css) animates that change smoothly - this is the
+  // "tapping a tooth enlarges it" behavior, done via transform, not opacity.
+  function renderArch(svgEl, toothNumbers, isUpper, selectedTooth) {
     if (!svgEl) return;
     const positions = buildArchPositions(toothNumbers.length, isUpper);
     svgEl.innerHTML = '';
     toothNumbers.forEach((toothNum, i) => {
       const { x, y, rotation } = positions[i];
+      const isSelected = selectedTooth !== null && selectedTooth !== undefined && String(selectedTooth) === String(toothNum);
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('transform', `translate(${x},${y}) rotate(${rotation})`);
+      g.setAttribute('class', 'tooth-group');
+      const scalePart = isSelected ? ' scale(1.8)' : '';
+      g.setAttribute('transform', `translate(${x},${y}) rotate(${rotation})${scalePart}`);
+      if (isSelected) g.setAttribute('data-selected', 'true');
       const record = toothRecords[toothNum] || {};
       const shapeClass = ['tooth-shape',
         record.finding ? 'has-finding' : '',
@@ -207,10 +223,21 @@
       upperTeeth = [...ADULT_UPPER, ...PRIMARY_UPPER];
       lowerTeeth = [...ADULT_LOWER, ...PRIMARY_LOWER];
     }
-    renderArch(document.getElementById('upper-arch-svg'), upperTeeth, true);
-    renderArch(document.getElementById('lower-arch-svg'), lowerTeeth, false);
+    renderArch(document.getElementById('upper-arch-svg'), upperTeeth, true, activeToothNumber);
+    renderArch(document.getElementById('lower-arch-svg'), lowerTeeth, false, activeToothNumber);
   }
 
+  // Stage 3: live clinical summary, docked bottom-left, refreshed every time
+  // toothRecords changes - not just when "Finish Treatment" is clicked.
+  function updateLiveSummary() {
+    const el = document.getElementById('live-summary-content');
+    if (!el) return;
+    el.innerHTML = generateClinicalSummary(toothRecords);
+  }
+
+  // Stage 3: opening a tooth both shows the slide-in panel on the right AND
+  // enlarges/re-renders the odontogram so the tapped tooth visually pops out
+  // and the arches shift left to make room (via the .panel-open margin).
   function openToothModal(toothNum) {
     activeToothNumber = toothNum;
     const record = toothRecords[toothNum] || {};
@@ -222,17 +249,29 @@
     document.getElementById('tooth-signature-capture').classList.add('hidden');
     document.querySelectorAll('.tooth-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     document.querySelectorAll('.tooth-tab-panel').forEach((p, i) => p.classList.toggle('hidden', i !== 0));
-    document.getElementById('tooth-modal-backdrop').classList.remove('hidden');
+    document.getElementById('tooth-modal-backdrop').classList.remove('closed');
+    const odontoView = document.getElementById('odontogram-section');
+    if (odontoView) odontoView.classList.add('panel-open');
+    renderOdontogram();
   }
 
   function closeToothModal() {
-    document.getElementById('tooth-modal-backdrop').classList.add('hidden');
+    document.getElementById('tooth-modal-backdrop').classList.add('closed');
     activeToothNumber = null;
+    const odontoView = document.getElementById('odontogram-section');
+    if (odontoView) odontoView.classList.remove('panel-open');
+    // Only re-render if the odontogram is actually still mounted (it won't
+    // be if Finish Treatment already swapped to the checkout screen).
+    if (document.getElementById('upper-arch-svg')) renderOdontogram();
   }
 
-  // Bug fix #7: structured HTML (Findings / Planned / Done sections) instead
-  // of one concatenated text blob. Safe to use innerHTML - all inputs are our
-  // own fixed dropdown labels plus numeric tooth IDs, never free-typed text.
+  // Bug fix carried forward (Stage 1, re-verified): structured HTML
+  // (Findings / Planned / Done sections) instead of one concatenated text
+  // blob. Safe to use innerHTML - all inputs are our own fixed dropdown
+  // labels plus numeric tooth IDs, never free-typed text. This same function
+  // backs both the live summary panel (Stage 3) and the Close Visit /
+  // completed-visit summary, so there is a single source of truth and no
+  // path where the Close Visit screen can end up blank while data exists.
   function generateClinicalSummary(records) {
     const findings = [], txPlanned = [], txDone = [];
     Object.keys(records).forEach((toothNum) => {
@@ -242,7 +281,7 @@
       if (r.txDone) txDone.push(`#${toothNum} — ${TX_DONE_LABELS[r.txDone] || r.txDone}`);
     });
     if (!findings.length && !txPlanned.length && !txDone.length) {
-      return '<p>No findings or treatments recorded.</p>';
+      return '<p class="muted-text">No findings or treatments recorded.</p>';
     }
     function section(title, items) {
       if (!items.length) return '';
@@ -282,6 +321,11 @@
     return `${y}-${m}-${d}`;
   }
 
+  // Bug fix (Stage 1): the clinical summary is generated and written to
+  // currentVisit.clinicalSummary BEFORE navigating to the checkout/Close
+  // Visit screen, and that same saved string (with a live fallback) is what
+  // the checkout screen reads back - so there is no window where the Close
+  // Visit screen can render before the summary exists.
   async function onFinishTreatmentClick() {
     const summary = generateClinicalSummary(toothRecords);
     const suggestion = suggestNextAppointment(toothRecords);
@@ -402,9 +446,9 @@
     });
   });
 
-  // Bug fix #6: "Link Consent" now instantly opens the signature pad inline
-  // (rather than showing a vague checkmark), captures a real signature, and
-  // only then saves via window.KnhosConsents.createConsent() and locks the badge.
+  // "Link Consent" instantly opens the signature pad inline, captures a real
+  // signature, and only then saves via window.KnhosConsents.createConsent()
+  // and locks the badge.
   document.getElementById('link-consent-btn').addEventListener('click', () => {
     document.getElementById('tooth-signature-capture').classList.remove('hidden');
     toothSignaturePad.clear();
@@ -445,18 +489,18 @@
       currentVisit.toothRecords = toothRecords;
       await window.KnhosVisits.updateVisit(currentVisit);
     }
+    updateLiveSummary(); // Stage 3: instant update, no need to close first
     closeToothModal();
-    renderOdontogram();
   });
 
   /* ==========================================================
      Views
      ========================================================== */
 
-  // Bug fix #1: Home shows functional action cards plus a live waiting-room
-  // feed. It fetches fresh data on every render (every navigation to
-  // #/home, including hashchange) and is also refreshed by updateContextBar
-  // on every subsequent hashchange/status change - no hard refresh needed.
+  // Home shows functional action cards plus a live waiting-room feed. It
+  // fetches fresh data on every render (every navigation to #/home,
+  // including hashchange) and is also refreshed by updateContextBar on
+  // every subsequent hashchange/status change - no hard refresh needed.
   async function renderHome() {
     setActiveNav('#/home');
     const waiting = await window.KnhosVisits.getWaitingVisits();
@@ -523,8 +567,6 @@
   }
 
   // New patient registration form. Registered at '#/patients/new'.
-  // Bug fix #2: adds an Address field and constrains Phone to a real
-  // 10-digit number via type="tel" + pattern + maxlength.
   function renderNewPatient() {
     setActiveNav('#/patients/new');
     setView(`
@@ -558,9 +600,6 @@
 
     const form = document.getElementById('new-patient-form');
     const phoneInput = document.getElementById('phone');
-    // Belt-and-braces alongside the HTML5 pattern: strip any non-digit as the
-    // person types and hard-cap at 10 characters, so pasted/IME input can't
-    // sneak past the pattern attribute either.
     phoneInput.addEventListener('input', () => {
       phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
     });
@@ -625,8 +664,9 @@
     });
   }
 
-  // Bug fix #3: patient's Age (from DOB), Gender, Phone, and Address are
-  // shown in a styled summary card BEFORE the visit history list.
+  // Patient's Age (from DOB), Gender, Phone, and Address are shown in a
+  // styled summary card BEFORE the visit history list. Visit history is
+  // sorted newest-first by visits.js (untouched) - verified below.
   async function renderPatientProfile(patientId) {
     setActiveNav('__none__');
     const patient = await window.KnhosPatients.getPatient(patientId);
@@ -663,6 +703,14 @@
       window.KnhosRouter.navigate(`#/patients/${patientId}/consents/new`));
     document.querySelectorAll('.open-visit-btn').forEach((btn) =>
       btn.addEventListener('click', (e) => window.KnhosRouter.navigate(`#/visits/${e.target.dataset.id}`)));
+
+    // Bug fix (Stage 1): re-validate the context bar every time a patient
+    // profile is opened, not just on hashchange. This is what guarantees
+    // that switching from Patient A's dashboard to Patient B's dashboard
+    // never leaves a stale/incorrect "Treating: ..." pill, and that the
+    // in-progress visit's true DB status (not a cached value) always drives
+    // what's shown.
+    await updateContextBar();
   }
 
   async function renderNewVisit(patientId) {
@@ -690,12 +738,21 @@
     });
   }
 
-  // Waiting room queue view.
+  // Waiting room queue view. Stage 2: denser rows + internally-scrolling
+  // list (via #queue-list/.queue-view CSS) so the queue is visible without
+  // scrolling the whole page for typical queue sizes. For very large queues
+  // the list itself will still scroll internally - there's no way to
+  // guarantee zero scrolling for an unbounded number of patients.
   async function renderQueue() {
     setActiveNav('__none__');
     const waiting = await window.KnhosVisits.getWaitingVisits();
     const rowsHtml = await buildWaitingRowsHtml(waiting);
-    await setView(`<div class="view-header"><h1>Waiting Room</h1></div>${rowsHtml}`);
+    await setView(`
+      <div class="queue-view">
+        <div class="view-header"><h1>Waiting Room</h1></div>
+        <div id="queue-list">${rowsHtml}</div>
+      </div>
+    `);
     wireCallToChairButtons(viewRoot);
   }
 
@@ -724,10 +781,11 @@
     rxItems = visit.rxItems || [];
     invoiceItems = visit.invoiceItems || [];
     currentMode = defaultModeForPatient(patient);
+    activeToothNumber = null;
 
-    // Bug fix #4 (guardrail): a completed visit is historical - it renders
-    // straight into the read-only checkout view with no odontogram/editing
-    // surface at all, rather than a live workspace that merely looks disabled.
+    // A completed visit is historical - it renders straight into the
+    // read-only checkout view with no odontogram/editing surface at all,
+    // rather than a live workspace that merely looks disabled.
     const isCompleted = visit.status === 'completed';
     checkoutReadOnly = isCompleted;
     const lockedAttr = isCompleted ? 'disabled' : '';
@@ -766,6 +824,11 @@
           <button id="finish-treatment-btn" type="button" class="btn btn-primary">Finish Treatment</button>
         </div>
       </section>
+
+      <div id="live-summary-panel" class="live-summary-panel">
+        <h4 class="panel-title">Live Clinical Summary</h4>
+        <div id="live-summary-content">${generateClinicalSummary(toothRecords)}</div>
+      </div>
       `}
 
       <section id="checkout-screen" class="checkout-screen ${isCompleted ? '' : 'hidden'}" ${isCompleted ? 'data-readonly="true"' : ''}>
@@ -793,7 +856,7 @@
           <h3>Invoice</h3>
           <div id="invoice-list"></div>
           <div class="invoice-add-row">
-            <input type="text" id="invoice-item-input" placeholder="Item / Procedure" ${lockedAttr}>
+            <input type="text" id="invoice-item-input" placeholder="Item / Procedure" list="invoice-item-datalist" ${lockedAttr}>
             <input type="number" id="invoice-amount-input" placeholder="₹ Amount" ${lockedAttr}>
             <button id="invoice-add-btn" type="button" ${lockedAttr}>+ Add</button>
           </div>
@@ -843,6 +906,8 @@
         renderRxList();
         renderInvoiceList();
         document.getElementById('odontogram-section').classList.add('hidden');
+        const liveSummaryPanel = document.getElementById('live-summary-panel');
+        if (liveSummaryPanel) liveSummaryPanel.classList.add('hidden');
         document.getElementById('checkout-screen').classList.remove('hidden');
       });
     } else {
@@ -891,11 +956,11 @@
     });
 
     // --- Print buttons ---
-    // Bug fix #9: add the printing-* class, then defer window.print() by one
-    // tick via setTimeout so the browser actually repaints display:block on
-    // the print doc before the print dialog captures the page - without this,
-    // iPad Safari can capture the pre-repaint (still display:none) frame and
-    // print blank.
+    // Fix (Stage 1, re-verified): add the printing-* class, then defer
+    // window.print() by one tick via setTimeout so the browser actually
+    // repaints display:block on the print doc before the print dialog
+    // captures the page - without this, iPad Safari can capture the
+    // pre-repaint (still display:none) frame and print blank.
     document.getElementById('print-rx-btn').addEventListener('click', () => {
       populatePrintRxDoc();
       document.body.classList.add('printing-rx');
