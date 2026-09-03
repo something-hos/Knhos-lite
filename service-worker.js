@@ -3,7 +3,7 @@
  * Step 1 Navigation Upgrade
  */ 
 
-const CACHE_VERSION = 'knhos-lite-shell-v11';
+const CACHE_VERSION = 'knhos-lite-shell-v12';
 
 const SHELL_FILES = [
   './',
