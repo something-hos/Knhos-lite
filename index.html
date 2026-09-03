@@ -8,187 +8,147 @@
 </head>
 <body>
 <div id="app-shell">
-  <header id="app-header">
-    <div class="header-inner">
-      <button class="brand" id="brand-home-btn" type="button">
-        <span class="brand-title">KNHOS Lite</span>
-      </button>
-      <nav id="main-nav">
-        <button class="nav-btn" data-route="#/home">Home</button>
-        <button class="nav-btn" data-route="#/patients">Patients</button>
-        <button class="nav-btn" data-route="#/patients/new">New Patient</button>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Context bar is a sibling of the header, not nested inside it -->
-  <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
-
-  <main id="app-main">
-    <div id="view-root"></div>
-  </main>
+<header id="app-header">
+<div class="header-inner">
+<div class="header-left">
+<button class="back-btn hidden" id="global-back-btn" type="button" aria-label="Back to previous screen">&lsaquo; Back</button>
+<button class="brand" id="brand-home-btn" type="button">
+<span class="brand-title">KNHOS Lite</span>
+</button>
 </div>
-
-<!-- Modal root, appended after #app-shell so it always overlays every route.
-     "closed" (not the generic "hidden" utility) is used here on purpose:
-     the panel needs to animate out via transform, which requires it to stay
-     in the layout (display != none) while closed. -->
+<nav id="main-nav">
+<button class="nav-btn" data-route="#/home">Home</button>
+<button class="nav-btn" data-route="#/patients">Patients</button>
+<button class="nav-btn" data-route="#/patients/new">New Patient</button>
+<button class="nav-btn" data-route="#/settings">⚙️ Settings</button>
+</nav>
+</div>
+</header>
+<div id="dynamic-context-bar" class="context-bar-wrapper"></div>
+<main id="app-main">
+<div id="view-root"></div>
+</main>
+</div>
 <div id="modal-root">
-  <div id="tooth-modal-backdrop" class="modal-backdrop closed">
-    <div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
-      <div class="tooth-modal-header">
-        <span id="tooth-modal-title">Tooth #—</span>
-        <button id="tooth-modal-close" type="button" aria-label="Close">✕</button>
-      </div>
-
-      <div class="tooth-modal-tabs" role="tablist">
-        <button class="tooth-tab-btn active" type="button" data-tab="findings">Findings</button>
-        <button class="tooth-tab-btn" type="button" data-tab="tx-planned">Tx Planned</button>
-        <button class="tooth-tab-btn" type="button" data-tab="tx-done">Tx Done Today</button>
-      </div>
-
-      <div class="tooth-tab-panel" data-panel="findings">
-        <label>Finding
-          <select id="finding-select">
-            <option value="">— Select —</option>
-            <option value="deep-caries">Deep Caries</option>
-            <option value="moderate-caries">Moderate Caries</option>
-            <option value="mobile">Mobile</option>
-            <option value="fractured">Fractured</option>
-            <option value="periapical-abscess">Periapical Abscess</option>
-            <option value="missing">Missing</option>
-            <option value="impacted">Impacted</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="tooth-tab-panel hidden" data-panel="tx-planned">
-        <label>Treatment Planned
-          <select id="tx-planned-select">
-            <option value="">— Select —</option>
-            <option value="rct">RCT (Root Canal Treatment)</option>
-            <option value="extraction">Extraction</option>
-            <option value="crown-prep">Crown Prep</option>
-            <option value="filling">Filling / Restoration</option>
-            <option value="braces">Braces / Ortho</option>
-            <option value="scaling">Scaling</option>
-          </select>
-        </label>
-
-        <div id="tooth-consent-block">
-          <button id="link-consent-btn" type="button" class="link-consent-btn">🖊 Link Consent (Capture Signature)</button>
-          <span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
-
-          <div id="tooth-signature-capture" class="tooth-signature-capture hidden">
-            <div class="signature-pad-wrapper small">
-              <canvas id="tooth-signature-pad"></canvas>
-            </div>
-            <div class="tooth-signature-actions">
-              <button type="button" id="tooth-sig-clear-btn" class="btn btn-secondary btn-sm">Clear</button>
-              <button type="button" id="tooth-sig-cancel-btn" class="btn btn-secondary btn-sm">Cancel</button>
-              <button type="button" id="tooth-sig-save-btn" class="btn btn-primary btn-sm">Save Signature</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tooth-tab-panel hidden" data-panel="tx-done">
-        <label>Treatment Done Today
-          <select id="tx-done-select">
-            <option value="">— Select —</option>
-            <option value="excavation">Excavation</option>
-            <option value="rct-started">RCT Started</option>
-            <option value="rct-completed">RCT Completed</option>
-            <option value="extraction-done">Extraction Done</option>
-            <option value="filling-done">Filling Placed</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="tooth-modal-footer">
-        <button id="tooth-modal-save" type="button">Save</button>
-      </div>
-    </div>
-  </div>
+<div id="tooth-modal-backdrop" class="modal-backdrop closed">
+<div id="tooth-modal" class="tooth-modal" role="dialog" aria-modal="true">
+<div class="tooth-modal-header">
+<span id="tooth-modal-title">Tooth #—</span>
+<button id="tooth-modal-close" type="button" aria-label="Close">✕</button>
 </div>
-
-<!-- Rx datalists: defined ONCE here. Referenced via list="..." from the Rx
-     inputs rendered by app.js. -->
-<datalist id="rx-drug-datalist">
-  <option value="Amoxicillin 500mg">
-  <option value="Metronidazole 400mg">
-  <option value="Ibuprofen 400mg">
-  <option value="Paracetamol 500mg">
-  <option value="Chlorhexidine Mouthwash">
-</datalist>
-<datalist id="rx-dosage-datalist">
-  <option value="1-0-1 x 3 days">
-  <option value="1-1-1 x 5 days">
-  <option value="SOS">
-  <option value="TDS">
-</datalist>
-
-<!-- Stage 2: Invoice item datalist for common procedures. Referenced via
-     list="invoice-item-datalist" from the invoice-item-input rendered by
-     app.js. Item names only - no invented prices, since actual pricing is
-     clinic-specific business data. -->
-<datalist id="invoice-item-datalist">
-  <option value="Consultation">
-  <option value="Scaling & Polishing">
-  <option value="Filling / Restoration">
-  <option value="Root Canal Treatment (RCT)">
-  <option value="Extraction">
-  <option value="Crown Prep">
-  <option value="X-Ray (IOPA)">
-  <option value="Braces / Ortho Adjustment">
-</datalist>
-
-<!-- Printable documents. Hidden on screen; shown only via body.printing-* in @media print -->
-<div id="print-rx-doc" class="print-doc">
-  <div class="print-watermark">Rx</div>
-  <div class="print-header">
-    <div class="print-clinic-name">KNHOS Dental Clinic</div>
-    <div class="print-branches">Karur Branch &middot; Sengal Branch</div>
-  </div>
-  <div class="print-doctor-line">[Dr. Name &amp; Qualifications]</div>
-  <hr class="print-rule">
-  <div class="print-patient-demo">
-    <span id="print-rx-patient-name"></span> &middot;
-    Age: <span id="print-rx-patient-age"></span> &middot;
-    Sex: <span id="print-rx-patient-sex"></span> &middot;
-    Date: <span id="print-rx-date"></span>
-  </div>
-  <div class="print-rx-symbol">℞</div>
-  <div id="print-rx-items" class="print-rx-items"></div>
-  <div class="print-signature-block">
-    <div class="print-signature-line"></div>
-    <div class="print-signature-caption">Doctor's Signature</div>
-  </div>
+<div class="tooth-modal-tabs" role="tablist">
+<button class="tooth-tab-btn active" type="button" data-tab="findings">Findings</button>
+<button class="tooth-tab-btn" type="button" data-tab="tx-planned">Tx Planned</button>
+<button class="tooth-tab-btn" type="button" data-tab="tx-done">Tx Done Today</button>
 </div>
-
-<div id="print-invoice-doc" class="print-doc">
-  <div class="print-header">
-    <div class="print-clinic-name">KNHOS Dental Clinic</div>
-    <div class="print-branches">Karur Branch &middot; Sengal Branch</div>
-  </div>
-  <div class="print-doctor-line">OFFICIAL INVOICE</div>
-  <hr class="print-rule">
-  <div class="print-patient-demo">
-    <span id="print-invoice-patient-name"></span> &middot;
-    Age: <span id="print-invoice-patient-age"></span> &middot;
-    Date: <span id="print-invoice-date"></span>
-  </div>
-  <table class="print-invoice-table">
-    <thead><tr><th>Item / Procedure</th><th>Amount (₹)</th></tr></thead>
-    <tbody id="print-invoice-rows"></tbody>
-    <tfoot><tr><td>Total</td><td id="print-invoice-total"></td></tr></tfoot>
-  </table>
-  <div class="print-signature-block">
-    <div class="print-signature-line"></div>
-    <div class="print-signature-caption">Authorized Signature</div>
-  </div>
+<div class="tooth-tab-panel" data-panel="findings">
+<label>Finding
+<select id="finding-select">
+<option value="">— Select —</option>
+<option value="deep-caries">Deep Caries</option>
+<option value="moderate-caries">Moderate Caries</option>
+<option value="mobile">Mobile</option>
+<option value="fractured">Fractured</option>
+<option value="periapical-abscess">Periapical Abscess</option>
+<option value="missing">Missing</option>
+<option value="impacted">Impacted</option>
+</select>
+</label>
 </div>
-
+<div class="tooth-tab-panel hidden" data-panel="tx-planned">
+<label>Treatment Planned
+<select id="tx-planned-select">
+<option value="">— Select —</option>
+<option value="rct">RCT (Root Canal Treatment)</option>
+<option value="extraction">Extraction</option>
+<option value="crown-prep">Crown Prep</option>
+<option value="filling">Filling / Restoration</option>
+<option value="braces">Braces / Ortho</option>
+<option value="scaling">Scaling</option>
+</select>
+</label>
+<div id="tooth-consent-block">
+<button id="link-consent-btn" type="button" class="link-consent-btn">🖊 Link Consent (Capture Signature)</button>
+<span id="consent-linked-badge" class="consent-badge hidden">Consent Linked ✓</span>
+<div id="tooth-signature-capture" class="tooth-signature-capture hidden">
+<div class="signature-pad-wrapper small">
+<canvas id="tooth-signature-pad"></canvas>
+</div>
+<div class="tooth-signature-actions">
+<button type="button" id="tooth-sig-clear-btn" class="btn btn-secondary btn-sm">Clear</button>
+<button type="button" id="tooth-sig-cancel-btn" class="btn btn-secondary btn-sm">Cancel</button>
+<button type="button" id="tooth-sig-save-btn" class="btn btn-primary btn-sm">Save Signature</button>
+</div>
+</div>
+</div>
+<div id="tooth-consent-status" class="tooth-consent-status hidden">
+<span id="tooth-consent-status-text"></span>
+<button id="tooth-consent-resolve-btn" type="button" class="tooth-consent-resolve-btn hidden">Resolve Consent</button>
+</div>
+</div>
+<div class="tooth-tab-panel hidden" data-panel="tx-done">
+<label>Treatment Done Today
+<select id="tx-done-select">
+<option value="">— Select —</option>
+<option value="excavation">Excavation</option>
+<option value="rct-started">RCT Started</option>
+<option value="rct-completed">RCT Completed</option>
+<option value="extraction-done">Extraction Done</option>
+<option value="filling-done">Filling Placed</option>
+</select>
+</label>
+</div>
+<div class="tooth-modal-footer">
+<button id="tooth-modal-save" type="button">Save</button>
+</div>
+</div>
+</div>
+<div id="consent-prompt-backdrop" class="consent-prompt-backdrop closed">
+<div id="consent-prompt-modal" class="consent-prompt-modal" role="dialog" aria-modal="true" aria-labelledby="consent-prompt-title">
+<button id="consent-prompt-close-btn" type="button" class="consent-prompt-close-btn" aria-label="Close">✕</button>
+<div class="consent-prompt-icon">⚠</div>
+<h3 id="consent-prompt-title">Consent Required</h3>
+<p id="consent-prompt-message" class="consent-prompt-message"></p>
+<div class="consent-prompt-actions">
+<button id="consent-prompt-next-visit-btn" type="button" class="btn btn-secondary">Obtain Consent Next Visit</button>
+<button id="consent-prompt-this-visit-btn" type="button" class="btn btn-primary">Obtain Consent This Visit</button>
+</div>
+</div>
+</div>
+<div id="consent-overlay-backdrop" class="consent-overlay-backdrop closed">
+<div id="consent-overlay" class="consent-overlay" role="dialog" aria-modal="true" aria-labelledby="consent-overlay-title">
+<div class="consent-overlay-header">
+<div class="consent-overlay-header-text">
+<h2 id="consent-overlay-title">Informed Consent</h2>
+<p id="consent-overlay-meta" class="consent-overlay-meta"></p>
+</div>
+<button id="consent-overlay-close-btn" type="button" aria-label="Close">✕</button>
+</div>
+<div class="consent-overlay-body">
+<div class="consent-lang-block">
+<h3 class="consent-lang-heading">English</h3>
+<div id="consent-overlay-text-en" class="consent-text-body"></div>
+</div>
+<div class="consent-lang-block consent-lang-block-ta">
+<h3 class="consent-lang-heading">Tamil (தமிழ்)</h3>
+<div class="consent-placeholder-banner">⚠ PLACEHOLDER — replace with clinic-approved legal text</div>
+<div class="consent-text-body consent-text-placeholder">The official Tamil-language consent text for this procedure has not yet been supplied by the clinic. This section must be replaced with clinic-approved legal text before this form is relied upon for an actual patient signature.</div>
+</div>
+<div class="consent-signature-block">
+<label class="consent-signature-label" for="consent-signature-pad">Patient / Guardian Signature *</label>
+<div class="signature-pad-wrapper">
+<canvas id="consent-signature-pad"></canvas>
+</div>
+<button type="button" id="consent-sig-clear-btn" class="btn btn-secondary btn-sm">Clear Signature</button>
+</div>
+</div>
+<div class="consent-overlay-footer">
+<button id="consent-overlay-cancel-btn" type="button" class="btn btn-secondary">Cancel</button>
+<button id="consent-overlay-save-btn" type="button" class="btn btn-primary">Save</button>
+</div>
+</div>
+</div>
+</div>
 <script src="js/db.js"></script>
 <script src="js/idgen.js"></script>
 <script src="js/patients.js"></script>
