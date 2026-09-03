@@ -30,7 +30,7 @@
     return rows.join('') || '<div class="card">No patients waiting.</div>';
   }
   async function callToChair(visitId) {
-    const visit = await window.KnhosVisits.setVisitStatus(visitId, 'in-progress');
+    const visit = await window.KnhosVisits.setVisitStatus(visitId, 'called-in');
     if (!visit) return;
     await updateContextBar();
     window.KnhosRouter.navigate(`#/visits/${visit.visitId}`);
@@ -40,12 +40,35 @@
       btn.addEventListener('click', () => callToChair(btn.dataset.visitId));
     });
   }
+
+  // --- Role-Based Dispatch: active role toggle (Reception | Doctor) ---
+  const ROLE_STORAGE_KEY = 'knhosActiveRole';
+  let currentRole = (function () {
+    try {
+      return localStorage.getItem(ROLE_STORAGE_KEY) === 'doctor' ? 'doctor' : 'reception';
+    } catch (err) {
+      return 'reception';
+    }
+  })();
+  function updateRoleSwitcherUI() {
+    document.querySelectorAll('.role-toggle-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.role === currentRole);
+    });
+  }
+  function setActiveRole(role) {
+    currentRole = role === 'doctor' ? 'doctor' : 'reception';
+    try { localStorage.setItem(ROLE_STORAGE_KEY, currentRole); } catch (err) { /* storage unavailable */ }
+    updateRoleSwitcherUI();
+    updateContextBar();
+  }
   
   async function updateContextBar() {
     const bar = document.getElementById('dynamic-context-bar');
     if (!bar) return;
     const waitingVisits = await window.KnhosVisits.getWaitingVisits();
-    const activeVisits = await window.KnhosVisits.getActiveVisits();
+    const allVisits = await window.KnhosDB.dbGetAll('visits');
+    const activeVisits = allVisits.filter((v) => v.status === 'in-progress' || v.status === 'on-hold' || v.status === 'called-in');
+    const calledInVisits = allVisits.filter((v) => v.status === 'called-in');
     let html = '';
     if (waitingVisits.length > 0) {
       html += `<button class="context-btn btn-waiting" type="button" id="btn-nav-queue">Waiting Room <span class="badge">${waitingVisits.length}</span></button>`;
@@ -57,7 +80,10 @@
       const name = escapeHtml(patient ? patient.fullName : 'Unknown');
       const pendingTag = patient && getPendingConsents(patient.patientId).length ? ' ⚠' : '';
       if (v.status === 'on-hold') {
-        return `<button class="context-btn btn-onhold-patient" type="button" data-visit-id="${escapeHtml(v.visitId)}">😴 Resting: ${name}${pendingTag}</button>`;
+        return `<button class="context-btn btn-onhold-patient recall-to-chair-btn" type="button" data-visit-id="${escapeHtml(v.visitId)}">↺ Recall to Chair: ${name}${pendingTag}</button>`;
+      }
+      if (v.status === 'called-in') {
+        return `<button class="context-btn btn-calledin-patient" type="button" data-visit-id="${escapeHtml(v.visitId)}">📣 Called In: ${name}${pendingTag}</button>`;
       }
       return `<button class="context-btn btn-active-patient" type="button" data-visit-id="${escapeHtml(v.visitId)}">🦷 In Chair: ${name}${pendingTag}</button>`;
     }))).join('');
@@ -65,7 +91,10 @@
     bar.innerHTML = html;
     const queueBtn = document.getElementById('btn-nav-queue');
     if (queueBtn) queueBtn.addEventListener('click', () => window.KnhosRouter.navigate('#/queue'));
-    bar.querySelectorAll('[data-visit-id]').forEach((btn) => {
+    bar.querySelectorAll('.recall-to-chair-btn').forEach((btn) => {
+      btn.addEventListener('click', () => callToChair(btn.dataset.visitId));
+    });
+    bar.querySelectorAll('[data-visit-id]:not(.recall-to-chair-btn)').forEach((btn) => {
       btn.addEventListener('click', () => window.KnhosRouter.navigate(`#/visits/${btn.dataset.visitId}`));
     });
     const homeList = document.getElementById('home-waiting-list');
@@ -75,6 +104,35 @@
       wireCallToChairButtons(homeList);
     }
     if (homeCount) homeCount.textContent = String(waitingVisits.length);
+    await updateReceptionAlertBanner(calledInVisits);
+  }
+
+  // --- Role-Based Dispatch: Reception-only "patient is ready" banner ---
+  async function updateReceptionAlertBanner(calledInVisits) {
+    const banner = document.getElementById('reception-alert-banner');
+    if (!banner) return;
+    if (currentRole !== 'reception' || !calledInVisits || !calledInVisits.length) {
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
+      return;
+    }
+    const rows = await Promise.all(calledInVisits.map(async (v) => {
+      const patient = await window.KnhosPatients.getPatient(v.patientId);
+      return `
+        <div class="reception-alert-row">
+          <span class="reception-alert-text">Dr. is ready for ${escapeHtml(patient ? patient.fullName : 'Unknown')}</span>
+          <button type="button" class="reception-alert-btn" data-visit-id="${escapeHtml(v.visitId)}">Patient Sent In</button>
+        </div>
+      `;
+    }));
+    banner.innerHTML = rows.join('');
+    banner.classList.remove('hidden');
+    banner.querySelectorAll('.reception-alert-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        await window.KnhosVisits.setVisitStatus(btn.dataset.visitId, 'in-progress');
+        await updateContextBar();
+      });
+    });
   }
   
   const ADULT_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -373,7 +431,14 @@
         : '<li class="autocomplete-list-empty">No matches</li>';
       list.classList.remove('hidden');
     }
-    input.addEventListener('focus', renderMatches);
+    input.addEventListener('focus', () => {
+      renderMatches();
+      // On iPad the virtual keyboard can cover the lower half of the screen —
+      // scroll the field (and its dropdown) into the visible area above it.
+      setTimeout(() => {
+        input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 300);
+    });
     input.addEventListener('input', renderMatches);
     input.addEventListener('blur', () => {
       setTimeout(() => list.classList.add('hidden'), 150);
@@ -389,56 +454,52 @@
       input.focus();
     });
   }
-  // --- Standalone print-window builder (Phase 3) ---
+  // --- Standalone print-window builder ---
   // iOS Safari standalone PWA shells silently fail / render blank frames when
   // window.print() is called on the app's own document. Instead we build a
   // fully self-contained HTML document (own <style>, no dependency on
   // main.css or #app-shell) and print it from a dedicated new tab/window.
-  function buildPrintDocumentHtml({ title, watermarkText, doctorLine, bodyHtml, signatureCaption }) {
+  function buildPrintDocumentHtml({ title, headerHtml, bodyHtml, signatureHtml, docClass, extraStyles }) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
 <style>
-  @page { size: A4; margin: 0; }
+  @page { size: A4; margin: 0.5cm; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; background: #fff; color: #111; font-family: 'Georgia', serif; }
-  .print-doc { position: relative; width: 210mm; min-height: 297mm; padding: 20mm 18mm; }
-  .print-watermark { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 140px; font-weight: 900; color: rgba(30, 58, 138, 0.06); z-index: 0; pointer-events: none; }
+  .print-doc { position: relative; width: 210mm; min-height: 297mm; padding: 16mm 18mm; page-break-inside: avoid; }
   .print-header { position: relative; z-index: 1; text-align: center; margin-bottom: 4mm; }
   .print-clinic-name { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
   .print-branches { font-size: 12px; color: #444; margin-top: 2px; }
-  .print-doctor-line { position: relative; z-index: 1; text-align: center; font-size: 13px; font-style: italic; margin-top: 4px; font-weight: bold; }
   .print-rule { position: relative; z-index: 1; border: none; border-top: 1.5px solid #111; margin: 6mm 0; }
-  .print-patient-demo { position: relative; z-index: 1; font-size: 13px; margin-bottom: 8mm; }
+  .print-patient-demo { position: relative; z-index: 1; font-size: 13px; margin-bottom: 6mm; }
   .print-rx-symbol { position: relative; z-index: 1; font-size: 28px; font-weight: 700; margin-bottom: 4mm; }
-  .print-rx-items { position: relative; z-index: 1; font-size: 14px; line-height: 2; min-height: 140mm; }
-  .print-rx-items .rx-line { border-bottom: 1px dotted #999; padding: 4px 0; }
-  .print-invoice-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 100mm; }
-  .print-invoice-table th, .print-invoice-table td { border-bottom: 1px solid #ddd; padding: 8px 4px; text-align: left; }
+  .print-rx-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; font-size: 14px; }
+  .print-rx-table th, .print-rx-table td { border-bottom: 1px dotted #999; padding: 6px 4px; text-align: left; }
+  .print-rx-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; border-bottom: 1px solid #111; }
+  .print-invoice-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; font-size: 13px; margin: 6mm 0; border: 1.5px solid #111; }
+  .print-invoice-table th, .print-invoice-table td { border: 1px solid #111; padding: 8px 10px; text-align: left; }
   .print-invoice-table th:last-child, .print-invoice-table td:last-child { text-align: right; }
-  .print-invoice-table tfoot td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; }
-  .print-signature-block { position: absolute; bottom: 20mm; right: 18mm; width: 60mm; text-align: center; z-index: 1; }
+  .print-invoice-table thead th { background: #f3f4f6; }
+  .print-invoice-table tfoot td { font-weight: 700; }
+  .print-signature-block { position: relative; z-index: 1; margin: 30mm 0 0 auto; width: 60mm; text-align: center; }
   .print-signature-line { border-top: 1px solid #111; margin-bottom: 4px; }
   .print-signature-caption { font-size: 11px; color: #333; }
-  @media print { html, body { width: 210mm; } }
+  @media print {
+    html, body { width: 210mm; }
+    @page { margin: 0.5cm; }
+    .print-doc { page-break-inside: avoid; }
+  }
+  ${extraStyles || ''}
 </style>
 </head>
 <body>
-  <div class="print-doc">
-    ${watermarkText ? `<div class="print-watermark">${escapeHtml(watermarkText)}</div>` : ''}
-    <div class="print-header">
-      <div class="print-clinic-name">KNHOS Dental Clinic</div>
-      <div class="print-branches">Karur Branch &middot; Sengal Branch</div>
-    </div>
-    <div class="print-doctor-line">${doctorLine}</div>
-    <hr class="print-rule">
+  <div class="print-doc${docClass ? ' ' + docClass : ''}">
+    ${headerHtml || ''}
     ${bodyHtml}
-    <div class="print-signature-block">
-      <div class="print-signature-line"></div>
-      <div class="print-signature-caption">${escapeHtml(signatureCaption)}</div>
-    </div>
+    ${signatureHtml || ''}
   </div>
 </body>
 </html>`;
@@ -467,11 +528,16 @@
     setTimeout(triggerPrint, 400);
   }
 
+  // Rx print is designed to be fed through a printer already loaded with
+  // pre-printed letterhead stationery: no clinic header, no watermark, no
+  // signature block — only what needs to print in the blank space below the
+  // letterhead. margin-top: 3.5in (applied only under @media print) shifts
+  // the content down past the letterhead artwork on the physical page.
   function printRxDoc() {
     const age = getAgeFromDob(currentPatient.dob);
-    const itemsHtml = rxItems
-      .map((r) => `<div class="rx-line">${escapeHtml(r.drug)} — ${escapeHtml(r.dosage)}</div>`).join('')
-      || '<div class="rx-line">—</div>';
+    const rowsHtml = rxItems
+      .map((r) => `<tr><td>${escapeHtml(r.drug)}</td><td>${escapeHtml(r.dosage)}</td></tr>`).join('')
+      || '<tr><td colspan="2">—</td></tr>';
     const bodyHtml = `
       <div class="print-patient-demo">
         ${escapeHtml(currentPatient.fullName)} &middot;
@@ -480,14 +546,18 @@
         Date: ${new Date().toLocaleDateString()}
       </div>
       <div class="print-rx-symbol">℞</div>
-      <div class="print-rx-items">${itemsHtml}</div>
+      <table class="print-rx-table">
+        <thead><tr><th>Medication</th><th>Dosage</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
     `;
     const html = buildPrintDocumentHtml({
       title: `Rx — ${currentPatient.fullName}`,
-      watermarkText: 'Rx',
-      doctorLine: '[Dr. Name &amp; Qualifications]',
+      headerHtml: '',
       bodyHtml,
-      signatureCaption: "Doctor's Signature"
+      signatureHtml: '',
+      docClass: 'rx-print-doc',
+      extraStyles: `@media print { .print-doc.rx-print-doc { margin-top: 3.5in; } }`
     });
     openPrintWindow(html);
   }
@@ -497,6 +567,13 @@
     const rowsHtml = invoiceItems
       .map((it) => `<tr><td>${escapeHtml(it.item)}</td><td>₹${it.amount}</td></tr>`).join('');
     const total = invoiceItems.reduce((sum, it) => sum + Number(it.amount || 0), 0);
+    const headerHtml = `
+      <div class="print-header">
+        <div class="print-clinic-name">Kumar Nature Cure Hospital</div>
+        <div class="print-branches">Sakthi Nagar, Gandhigramam, Karur - 639 004</div>
+      </div>
+      <hr class="print-rule">
+    `;
     const bodyHtml = `
       <div class="print-patient-demo">
         ${escapeHtml(currentPatient.fullName)} &middot;
@@ -509,12 +586,18 @@
         <tfoot><tr><td>Total</td><td>₹${total}</td></tr></tfoot>
       </table>
     `;
+    const signatureHtml = `
+      <div class="print-signature-block">
+        <div class="print-signature-line"></div>
+        <div class="print-signature-caption">Authorized Signature</div>
+      </div>
+    `;
     const html = buildPrintDocumentHtml({
       title: `Invoice — ${currentPatient.fullName}`,
-      watermarkText: '',
-      doctorLine: 'OFFICIAL INVOICE',
+      headerHtml,
       bodyHtml,
-      signatureCaption: 'Authorized Signature'
+      signatureHtml,
+      docClass: 'invoice-print-doc'
     });
     openPrintWindow(html);
   }
@@ -692,13 +775,39 @@
       clinical team to proceed as clinically necessary.</p>
     `;
   }
+  // The Tamil translation has not been supplied by the clinic yet — this is a
+  // deliberately obvious placeholder, not a translation, and must be swapped
+  // out for clinic-approved legal text before this form is used for real.
+  function buildConsentTamilPlaceholderHtml() {
+    return `
+      <div class="consent-placeholder-banner">⚠ PLACEHOLDER — replace with clinic-approved legal text</div>
+      <div class="consent-text-placeholder">The official Tamil-language consent text for this procedure
+      has not yet been supplied by the clinic. This section must be replaced with clinic-approved legal
+      text before this form is relied upon for an actual patient signature.</div>
+    `;
+  }
+  function setConsentOverlayLanguage(lang) {
+    const container = document.getElementById('consent-overlay-text-container');
+    if (!container || !consentOverlayContext) return;
+    container.innerHTML = lang === 'ta' ? consentOverlayContext.taHtml : consentOverlayContext.enHtml;
+    document.getElementById('consent-lang-en-btn').classList.toggle('active', lang === 'en');
+    document.getElementById('consent-lang-ta-btn').classList.toggle('active', lang === 'ta');
+  }
+  document.getElementById('consent-lang-en-btn').addEventListener('click', () => setConsentOverlayLanguage('en'));
+  document.getElementById('consent-lang-ta-btn').addEventListener('click', () => setConsentOverlayLanguage('ta'));
   function openConsentOverlay(toothNumber, treatmentKey, opts = {}) {
-    consentOverlayContext = { toothNumber, treatmentKey, resolvingPending: !!opts.resolvingPending };
+    consentOverlayContext = {
+      toothNumber,
+      treatmentKey,
+      resolvingPending: !!opts.resolvingPending,
+      enHtml: buildConsentEnglishText(treatmentKey, toothNumber, currentPatient),
+      taHtml: buildConsentTamilPlaceholderHtml()
+    };
     const label = TX_LABELS[treatmentKey] || treatmentKey;
     document.getElementById('consent-overlay-title').textContent = `Informed Consent — ${label}`;
     document.getElementById('consent-overlay-meta').textContent =
       `${currentPatient ? currentPatient.fullName : 'Unknown patient'} · Tooth #${toothNumber} · ${new Date().toLocaleDateString()}`;
-    document.getElementById('consent-overlay-text-en').innerHTML = buildConsentEnglishText(treatmentKey, toothNumber, currentPatient);
+    setConsentOverlayLanguage('en');
     document.getElementById('consent-overlay-backdrop').classList.remove('closed');
     consentSignaturePad.clear();
     consentSignaturePad.resize();
@@ -771,7 +880,7 @@
       <div class="field" style="margin-bottom:20px;">
         <input type="search" id="patient-search-input" placeholder="Search by name or patient ID...">
       </div>
-      <div id="patient-list-container"></div>
+      <div id="patient-list-container" class="patient-grid"></div>
     `);
     const input = document.getElementById('patient-search-input');
     const container = document.getElementById('patient-list-container');
@@ -784,6 +893,12 @@
           (p.patientId && p.patientId.toLowerCase().includes(lowerQ))
         );
       }
+      // Newest patients first.
+      results = results.slice().sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
       container.innerHTML = results.length === 0
         ? '<div class="card">No matches.</div>'
         : results.map((p) => `
@@ -828,6 +943,9 @@
         </form>
       </div>
     `);
+    const dobInput = document.getElementById('dob');
+    // Prevent selecting a future date of birth (which would produce a negative age).
+    dobInput.max = formatDateForInput(new Date());
     const form = document.getElementById('new-patient-form');
     const phoneInput = document.getElementById('phone');
     phoneInput.addEventListener('input', () => {
@@ -926,14 +1044,11 @@
       </div>
       <div class="card">
         <button class="btn btn-primary" id="btn-new-visit" type="button">New Visit Intake</button>
-        <button class="btn btn-secondary" id="btn-new-consent" type="button">New Digital Consent</button>
       </div>
       ${visitsHtml}
     `);
     document.getElementById('btn-new-visit').addEventListener('click', () =>
       window.KnhosRouter.navigate(`#/patients/${patientId}/visits/new`));
-    document.getElementById('btn-new-consent').addEventListener('click', () =>
-      window.KnhosRouter.navigate(`#/patients/${patientId}/consents/new`));
     document.querySelectorAll('.open-visit-btn').forEach((btn) =>
       btn.addEventListener('click', (e) => window.KnhosRouter.navigate(`#/visits/${e.target.dataset.id}`)));
     await updateContextBar();
@@ -1035,6 +1150,37 @@
     invoiceItems = visit.invoiceItems || [];
     currentMode = defaultModeForPatient(patient);
     activeToothNumber = null;
+
+    // --- Dispatch workflow: a "called-in" visit is parked on a holding
+    // screen until Reception confirms the patient has physically been sent
+    // in. The odontogram/checkout chart stays locked until then.
+    if (visit.status === 'called-in') {
+      await setView(`
+        <div class="clinical-record-header">
+          <div class="clinical-record-header-top">
+            <h1>${escapeHtml(patient.fullName)}</h1>
+          </div>
+          <span class="visit-meta">Visit ${escapeHtml(visit.visitId)}</span>
+        </div>
+        <div class="reason-banner">
+          <div class="reason-banner-label">Reason for Visit</div>
+          <div class="reason-banner-text">${escapeHtml(visit.reason || '—')}</div>
+        </div>
+        <div class="holding-screen">
+          <div class="holding-spinner" aria-hidden="true"></div>
+          <p class="holding-screen-text">Waiting for Reception to send ${escapeHtml(patient.fullName)} in&hellip;</p>
+          <button id="force-start-btn" type="button" class="btn btn-secondary holding-force-btn">Force Start (Override)</button>
+        </div>
+      `);
+      document.getElementById('force-start-btn').addEventListener('click', async () => {
+        const updated = await window.KnhosVisits.setVisitStatus(visit.visitId, 'in-progress');
+        if (updated) currentVisit = updated;
+        await updateContextBar();
+        await renderVisitClinicalRecord(visit.visitId);
+      });
+      return;
+    }
+
     const isCompleted = visit.status === 'completed';
     checkoutReadOnly = isCompleted;
     const lockedAttr = isCompleted ? 'disabled' : '';
@@ -1142,7 +1288,6 @@
         <div class="checkout-actions">
           <button id="print-rx-btn" type="button" class="checkout-btn secondary">Print Rx</button>
           <button id="print-invoice-btn" type="button" class="checkout-btn secondary">Print Invoice</button>
-          ${isCompleted ? '' : '<button id="step-out-btn-checkout" type="button" class="checkout-btn secondary step-out-btn">⏸ Step Out / Resting</button>'}
           ${isCompleted ? '' : '<button id="save-close-visit-btn" type="button" class="checkout-btn primary">Save &amp; Close Visit</button>'}
         </div>
       </section>
@@ -1332,7 +1477,7 @@
   async function renderSettings() {
     setActiveNav('#/settings');
     await setView(`
-      <div class="view-header"><h1>⚙️ Settings</h1></div>
+      <div class="view-header"><h1>Settings</h1></div>
       <div class="card settings-card">
         <h2 class="settings-card-title">Data Backup &amp; Restore</h2>
         <p class="settings-note">KNHOS Lite stores all clinic data locally on this device. Export a backup
@@ -1340,11 +1485,9 @@
         everything currently stored on this device.</p>
         <div class="settings-btn-group">
           <button id="export-backup-btn" type="button" class="settings-btn settings-btn-export">
-            <span class="settings-btn-icon">⬇️</span>
             <span>Export Database Backup</span>
           </button>
           <button id="restore-backup-btn" type="button" class="settings-btn settings-btn-restore">
-            <span class="settings-btn-icon">⬆️</span>
             <span>Restore from Backup</span>
           </button>
           <input type="file" id="restore-file-input" accept=".json" class="hidden">
@@ -1371,6 +1514,10 @@
   
   navButtons.forEach((btn) => btn.addEventListener('click', () => window.KnhosRouter.navigate(btn.dataset.route)));
   document.getElementById('brand-home-btn').addEventListener('click', () => window.KnhosRouter.navigate('#/home'));
+  document.querySelectorAll('.role-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => setActiveRole(btn.dataset.role));
+  });
+  updateRoleSwitcherUI();
   
   const globalBackBtn = document.getElementById('global-back-btn');
   if (globalBackBtn) {
@@ -1384,12 +1531,33 @@
     updateContextBar(); 
     updateBackButtonVisibility(); 
   });
+
+  // --- Simulated WebSockets: a lightweight poll stands in for real-time
+  // server push. IndexedDB is shared across tabs on the same origin, so a
+  // Reception tab and a Doctor tab both polling the same store is enough to
+  // fake a live dispatch channel without any backend. ---
+  function isViewingVisit(visitId) {
+    return window.location.hash === `#/visits/${visitId}`;
+  }
+  async function pollActiveVisitStatus() {
+    if (!currentVisit || !isViewingVisit(currentVisit.visitId)) return;
+    const fresh = await window.KnhosVisits.getVisit(currentVisit.visitId);
+    if (fresh && fresh.status !== currentVisit.status) {
+      // Status changed behind the scenes (e.g. Reception clicked "Patient Sent
+      // In") — re-render so the holding screen unlocks without a page refresh.
+      await renderVisitClinicalRecord(currentVisit.visitId);
+    }
+  }
   
   async function initApp() {
     await window.KnhosDB.openDatabase();
     window.KnhosRouter.startRouter();
     await updateContextBar();
     updateBackButtonVisibility();
+    setInterval(() => {
+      updateContextBar();
+      pollActiveVisitStatus();
+    }, 2000);
   }
   initApp();
 })();
