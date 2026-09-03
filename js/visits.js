@@ -10,7 +10,7 @@ async function createVisit({ patientId, department, visitDate, reason }) {
     department,
     visitDate,
     reason: reason || '',
-    status: 'waiting', // STEP 1: new visits always start in the waiting room
+    status: 'waiting', 
     createdAt: new Date().toISOString()
   };
   await dbAdd('visits', record);
@@ -25,7 +25,6 @@ async function listVisitsForPatient(patientId) {
   return visits.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-// STEP 1: visits currently sitting in the waiting room, oldest first (FIFO queue)
 async function getWaitingVisits() {
   const all = await dbGetAll('visits');
   return all
@@ -33,7 +32,6 @@ async function getWaitingVisits() {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-// STEP 1: used by the queue's "Call to Chair" action and by the direct-open guard
 async function setVisitStatus(visitId, status) {
   const visit = await dbGet('visits', visitId);
   if (!visit) return null;
@@ -42,12 +40,20 @@ async function setVisitStatus(visitId, status) {
   return visit;
 }
 
+async function getActiveVisits() {
+  const all = await dbGetAll('visits');
+  return all
+    .filter((v) => v.status === 'in-progress' || v.status === 'on-hold')
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 window.KnhosVisits = {
   createVisit,
   getVisit,
   updateVisit,
   listVisitsForPatient,
   getWaitingVisits,
-  setVisitStatus
+  setVisitStatus,
+  getActiveVisits
 };
 })();
