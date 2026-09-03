@@ -1,9 +1,31 @@
 (function() {
   const routes = {};
+  const historyStack = [];
+
   function registerRoute(hash, callback) { routes[hash] = callback; }
-  function navigate(hash) { window.location.hash = hash; }
+
+  function currentHash() {
+    return window.location.hash || '#/home';
+  }
+
+  function navigate(hash) {
+    const from = currentHash();
+    if (hash === from) return; 
+    historyStack.push(from);
+    window.location.hash = hash;
+  }
+
+  function goBack() {
+    const prevHash = historyStack.length ? historyStack.pop() : '#/home';
+    window.location.hash = prevHash;
+  }
+
+  function canGoBack() {
+    return historyStack.length > 0;
+  }
+
   function handleRoute() {
-    let hash = window.location.hash || '#/home';
+    let hash = currentHash();
     const baseHash = hash.split('?')[0];
     for (const route in routes) {
       const routeParts = route.split('/');
@@ -20,9 +42,11 @@
     }
     if (routes['#/home']) routes['#/home']();
   }
+
   function startRouter() {
     window.addEventListener('hashchange', handleRoute);
     handleRoute();
   }
-  window.KnhosRouter = { registerRoute, navigate, startRouter };
+
+  window.KnhosRouter = { registerRoute, navigate, goBack, canGoBack, startRouter };
 })();
