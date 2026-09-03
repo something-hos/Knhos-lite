@@ -1,41 +1,36 @@
 :root {
-  --color-bg: #f6f7f5; --color-surface: #ffffff; --color-border: #dde2df;
-  --color-text: #1c2521; --color-primary: #1f4d43; --color-primary-dark: #143530;
-  --color-danger: #a3352a; --radius: 10px; --touch-min: 48px;
+--color-bg: #f6f7f5; --color-surface: #ffffff; --color-border: #dde2df;
+--color-text: #1c2521; --color-primary: #1f4d43; --color-primary-dark: #143530;
+--color-danger: #a3352a; --radius: 10px; --touch-min: 48px;
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, sans-serif; background: var(--color-bg); color: var(--color-text); -webkit-tap-highlight-color: transparent; }
-
 .hidden { display: none !important; }
-
 #app-shell { display: flex; flex-direction: column; min-height: 100vh; }
 #app-header { background: var(--color-primary); color: #fff; position: sticky; top: 0; z-index: 100; isolation: isolate; }
 .header-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 12px; }
 .brand { background: none; border: none; color: #fff; cursor: pointer; font-size: 1.2rem; font-weight: bold; }
 .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer; min-height: var(--touch-min); }
 .nav-btn.active { background: #fff; color: var(--color-primary); }
+.back-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; min-height: var(--touch-min); font-weight: 700; font-size: 1rem; touch-action: manipulation; }
+.back-btn:active { background: rgba(255,255,255,0.32); }
 #app-main { padding: 20px; flex: 1; }
 #view-root { max-width: 1100px; margin: 0 auto; }
-
 .card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 18px; }
 .btn { padding: 12px 20px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; min-height: var(--touch-min); }
 .btn-primary { background: var(--color-primary); color: #fff; }
 .btn-secondary { background: #fff; border: 1px solid var(--color-border); }
 .btn-sm { min-height: 40px; padding: 8px 14px; font-size: 0.9rem; }
-
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field input, .field select, .field textarea { border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 14px; min-height: var(--touch-min); font-family: inherit; }
 .form-actions { margin-top: 18px; display: flex; gap: 10px; }
-
 .view-header { margin-bottom: 16px; }
 .view-header h1 { margin: 0 0 4px; }
-
 .signature-pad-wrapper { border: 2px dashed var(--color-primary); border-radius: 10px; background: #fff; touch-action: none; overflow: hidden; margin-bottom: 10px; }
 .signature-pad-wrapper canvas { width: 100%; height: 250px; display: block; cursor: crosshair; }
 .signature-pad-wrapper.small canvas { height: 140px; }
-
-/* ---------- Context Bar ---------- */
 .context-bar-wrapper { background: var(--color-primary-dark); min-height: 54px; padding: 10px 20px; display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; position: relative; z-index: 5; isolation: isolate; }
 .context-btn { display: flex; align-items: center; gap: 8px; border: none; border-radius: 20px; padding: 8px 18px; font-size: 0.95rem; font-weight: 700; cursor: pointer; min-height: 44px; touch-action: manipulation; }
 .btn-waiting { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; box-shadow: 0 2px 8px rgba(230, 81, 0, 0.2); }
@@ -43,51 +38,40 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .btn-waiting-empty { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border: 1px dashed rgba(255,255,255,0.3); }
 .btn-active-patient { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; animation: pulse 2s infinite; }
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+70% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0); }
+100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
 }
-
-/* ---------- Patients list / profile ---------- */
+.btn-onhold-patient { background: #fff8e1; color: #92400e; border: 1px solid #ffe082; }
 .patient-row { width: 100%; text-align: left; background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .visit-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .visit-status-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: capitalize; }
 .visit-status-waiting { background: #fff3e0; color: #e65100; }
 .visit-status-in-progress { background: #e3f2fd; color: #0d47a1; }
 .visit-status-completed { background: #e8f5e9; color: #1b5e20; }
-
-/* ---------- Stage 2: dense Waiting Room queue view ---------- */
+.visit-status-on-hold { background: #fff8e1; color: #92400e; }
 .queue-view .card { padding: 12px 16px; margin-bottom: 8px; }
 .queue-view .view-header { margin-bottom: 10px; }
 .queue-view .view-header h1 { font-size: 1.3rem; }
 #queue-list { max-height: calc(100vh - 230px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-/* ---------- Odontogram & Modal ---------- */
 .clinical-record-header { margin-bottom: 8px; }
 .clinical-record-header h1 { margin-bottom: 2px; }
+.clinical-record-header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.clinical-record-header-top h1 { margin: 0; }
 .visit-meta { color: #6b7280; font-size: 13px; }
+.step-out-btn { background: #fff8e1; color: #92400e; border: 1px solid #ffca28; }
+.step-out-btn:active { background: #ffecb3; }
 .dentition-toggle { display: flex; gap: 8px; padding: 12px 16px; justify-content: center; }
 .dent-toggle-btn { min-height: 44px; padding: 8px 16px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff; font-weight: 600; cursor: pointer; touch-action: manipulation; }
 .dent-toggle-btn.active { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
-
-/* Stage 3: "liquid" layout shift - the whole odontogram view compresses via
-   a transitioning margin (not opacity) to make room for the docked tooth
-   panel on the right, so the arches visually shift left when a tooth opens. */
 .odontogram-view { transition: margin-right 0.3s ease; }
 .odontogram-view.panel-open { margin-right: min(420px, 92vw); }
 @media (max-width: 900px) { .odontogram-view.panel-open { margin-right: 0; } }
-
 #odontogram-container { display: flex; flex-direction: column; gap: 24px; padding: 16px; align-items: center; }
 .arch-wrapper { position: relative; width: 100%; max-width: 600px; text-align: center; }
 .arch-label { font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: bold; margin-bottom: 8px; }
 #upper-arch-svg, #lower-arch-svg { width: 100%; height: auto; overflow: visible; }
-
-/* .tooth-group is the <g> wrapper around each tooth. It carries a JS-set
-   `transform` attribute (position/rotation, plus scale(1.8) when selected).
-   The CSS transition below animates changes to that attribute smoothly -
-   this is how the selected tooth "enlarges" without any opacity/fade. */
 .tooth-group { transition: transform 0.25s ease; }
-
 .tooth-shape { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; pointer-events: none; }
 .tooth-shape.has-finding { fill: #fef2f2; stroke: #dc2626; stroke-width: 2; }
 .tooth-shape.has-tx-planned { stroke: #2563eb; stroke-width: 2; stroke-dasharray: 3 2; }
@@ -97,23 +81,18 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .tooth-hit-area:active + .tooth-shape { fill: #dbeafe; }
 .tooth-number-label { font-size: 11px; fill: #4b5563; text-anchor: middle; pointer-events: none; font-weight: bold; }
 .odontogram-actions { display: flex; justify-content: center; padding: 12px 16px 24px; }
-
-/* Stage 3: the tooth panel is now a right-docked slide-in surface, not a
-   centered fade-in modal. The backdrop is a transparent, full-screen click
-   catcher (used to close on outside-tap) - it is never itself faded; only
-   its pointer-events toggle. The panel's transform is what animates. */
 .modal-backdrop { position: fixed; inset: 0; background: transparent; z-index: 9999; pointer-events: none; }
 .modal-backdrop:not(.closed) { pointer-events: auto; }
 .tooth-modal {
-  position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(420px, 92vw);
-  background: #fff;
-  box-shadow: -8px 0 30px rgba(0,0,0,0.18);
-  transform: translateX(105%);
-  transition: transform 0.28s ease;
-  display: flex; flex-direction: column;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+position: fixed; top: 0; right: 0; bottom: 0;
+width: min(420px, 92vw);
+background: #fff;
+box-shadow: -8px 0 30px rgba(0,0,0,0.18);
+transform: translateX(105%);
+transition: transform 0.28s ease;
+display: flex; flex-direction: column;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
 }
 .modal-backdrop:not(.closed) .tooth-modal { transform: translateX(0); }
 .tooth-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; font-weight: 700; font-size: 18px; }
@@ -134,26 +113,21 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .tooth-signature-actions .btn { flex: 1; min-width: 90px; }
 .tooth-modal-footer { padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; }
 #tooth-modal-save { min-height: 44px; padding: 0 20px; border-radius: 8px; border: none; background: #1e3a8a; color: #fff; font-weight: 700; cursor: pointer; }
-
-/* Stage 3: live clinical summary, docked bottom-left, updates instantly as
-   findings/treatments are saved - no need to wait for "Finish Treatment". */
 .live-summary-panel {
-  position: fixed; left: 16px; bottom: 16px;
-  width: min(320px, calc(100vw - 32px));
-  max-height: 40vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-  z-index: 50;
+position: fixed; left: 16px; bottom: 16px;
+width: min(320px, calc(100vw - 32px));
+max-height: 40vh;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
+background: #fff;
+border: 1px solid var(--color-border);
+border-radius: var(--radius);
+padding: 14px 16px;
+box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+z-index: 50;
 }
 .live-summary-panel h4.panel-title { margin: 0 0 8px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-primary); }
 .live-summary-panel .muted-text { color: #6b7280; font-size: 0.9rem; margin: 0; }
-
-/* ---------- Checkout ---------- */
 .checkout-screen { max-width: 800px; margin: 0 auto; padding: 20px 0 100px; }
 .checkout-screen.hidden { display: none; }
 .checkout-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -168,31 +142,25 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 .next-appt-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .reason-text { font-weight: 400; font-size: 13px; color: #6b7280; }
 .next-appt-label input[type="date"] { min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid #d1d5db; max-width: 300px; }
-.checkout-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0; background: var(--color-bg); }
-.checkout-btn { flex: 1; min-height: 48px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; }
+.checkout-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 0; background: var(--color-bg); flex-wrap: wrap; }
+.checkout-btn { flex: 1 1 140px; min-height: 48px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; }
 .checkout-btn.secondary { background: #eff6ff; color: #1e3a8a; border: 1px solid #1e3a8a; }
 .checkout-btn.primary { background: #16a34a; color: #fff; }
-
-/* ---------- Home screen ---------- */
+.manual-note-textarea { width: 100%; border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 14px; font-family: inherit; resize: vertical; min-height: 80px; }
+.save-close-error { background: #fdecea; color: var(--color-danger); border: 1px solid #f2b8b5; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 12px; font-weight: 600; }
 .home-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .home-action-card { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 24px 20px; cursor: pointer; text-align: left; }
 .home-action-card h3 { margin: 0 0 6px; font-size: 1.15rem; }
 .home-action-card p { margin: 0; color: #6b7280; font-size: 0.9rem; }
 .home-waiting-feed h2 { margin-bottom: 10px; font-size: 1.1rem; }
 .home-waiting-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-/* ---------- Patient profile summary card ---------- */
 .patient-summary-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
 .patient-summary-item { display: flex; flex-direction: column; gap: 2px; }
 .patient-summary-label { font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 700; letter-spacing: 0.03em; }
 .patient-summary-value { font-size: 1rem; font-weight: 600; }
-
-/* ---------- Reason-for-visit banner ---------- */
 .reason-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; }
 .reason-banner-label { font-size: 11px; text-transform: uppercase; color: #1e3a8a; font-weight: 700; letter-spacing: 0.03em; }
 .reason-banner-text { font-size: 1.05rem; font-weight: 600; margin-top: 2px; }
-
-/* ---------- Read-only guardrail for completed visits ---------- */
 .readonly-banner { background: #fef3c7; border: 1px solid #fde68a; border-radius: var(--radius); padding: 12px 18px; margin-bottom: 16px; font-weight: 700; color: #92400e; text-align: center; }
 [data-readonly="true"] select,
 [data-readonly="true"] input,
@@ -200,45 +168,217 @@ body { margin: 0; font-family: -apple-system, sans-serif; background: var(--colo
 [data-readonly="true"] .btn,
 [data-readonly="true"] .checkout-btn.primary,
 [data-readonly="true"] button:not(.checkout-btn.secondary) { opacity: 0.5; pointer-events: none; }
-
-/* ---------- Structured clinical summary ---------- */
 .clinical-summary-block h4 { margin: 10px 0 4px; font-size: 0.85rem; text-transform: uppercase; color: #1f4d43; letter-spacing: 0.03em; }
 .clinical-summary-block h4:first-child { margin-top: 0; }
 .clinical-summary-block ul { margin: 0 0 6px; padding-left: 20px; }
 .clinical-summary-block li { font-size: 0.95rem; line-height: 1.6; }
 
-.print-doc { display: none; }
-@media print {
-  #app-shell, #modal-root { display: none !important; }
-  html, body { background: #fff !important; margin: 0; padding: 0; }
-  .print-doc { display: none; }
-  body.printing-rx #print-rx-doc,
-  body.printing-invoice #print-invoice-doc {
-    display: block !important;
-    position: relative;
-    width: 210mm;
-    min-height: 297mm;
-    padding: 20mm 18mm;
-    box-sizing: border-box;
-    color: #111;
-    font-family: 'Georgia', serif;
-  }
-  .print-watermark { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-25deg); font-size: 140px; font-weight: 900; color: rgba(30, 58, 138, 0.06); z-index: 0; pointer-events: none; }
-  .print-header { text-align: center; margin-bottom: 4mm; }
-  .print-clinic-name { font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
-  .print-branches { font-size: 12px; color: #444; margin-top: 2px; }
-  .print-doctor-line { text-align: center; font-size: 13px; font-style: italic; margin-top: 4px; font-weight: bold; }
-  .print-rule { border: none; border-top: 1.5px solid #111; margin: 6mm 0; }
-  .print-patient-demo { font-size: 13px; margin-bottom: 8mm; }
-  .print-rx-symbol { font-size: 28px; font-weight: 700; margin-bottom: 4mm; }
-  .print-rx-items { font-size: 14px; line-height: 2; min-height: 140mm; }
-  .print-rx-items .rx-line { border-bottom: 1px dotted #999; padding: 4px 0; }
-  .print-invoice-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 100mm; }
-  .print-invoice-table th, .print-invoice-table td { border-bottom: 1px solid #ddd; padding: 8px 4px; text-align: left; }
-  .print-invoice-table th:last-child, .print-invoice-table td:last-child { text-align: right; }
-  .print-invoice-table tfoot td { font-weight: 700; border-top: 2px solid #111; border-bottom: none; }
-  .print-signature-block { position: absolute; bottom: 20mm; right: 18mm; width: 60mm; text-align: center; }
-  .print-signature-line { border-top: 1px solid #111; margin-bottom: 4px; }
-  .print-signature-caption { font-size: 11px; color: #333; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+/* --- New Visit Intake: patient context header + quick-pick reason chips (Phase 3) --- */
+.view-eyebrow { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 700; margin-bottom: 8px; }
+.patient-context-card { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; box-shadow: 0 4px 14px rgba(31, 77, 67, 0.25); }
+.patient-context-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+.patient-context-meta { display: flex; flex-wrap: wrap; gap: 10px; }
+.context-chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; }
+.context-chip-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.75; font-weight: 700; }
+.reason-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.reason-chip { min-height: 44px; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--color-border); background: #fff; color: var(--color-text); font-weight: 600; font-size: 0.9rem; cursor: pointer; touch-action: manipulation; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.reason-chip:active { background: #eef2f0; }
+.reason-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* ==========================================================================
+   Phase 4 — Custom touch-optimized autocomplete dropdowns
+   Replaces native <datalist> for Prescription (drug/dosage) and Invoice
+   (item/procedure) inputs. Positioned absolutely so the open list floats
+   above surrounding content without pushing other layout elements around.
+   ========================================================================== */
+.autocomplete-field { position: relative; flex: 1; min-width: 140px; }
+.autocomplete-field input { width: 100%; min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid #d1d5db; font-family: inherit; }
+.autocomplete-list {
+position: absolute;
+top: calc(100% + 4px);
+left: 0;
+right: 0;
+z-index: 400;
+margin: 0;
+padding: 6px;
+list-style: none;
+background: #fff;
+border: 1px solid #d1d5db;
+border-radius: 10px;
+box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+max-height: 220px;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
 }
+.autocomplete-list.hidden { display: none; }
+.autocomplete-list li {
+min-height: 44px;
+display: flex;
+align-items: center;
+padding: 10px 12px;
+border-radius: 7px;
+font-size: 0.95rem;
+cursor: pointer;
+touch-action: manipulation;
+}
+.autocomplete-list li:active,
+.autocomplete-list li.highlighted { background: #eef2f0; }
+.autocomplete-list li + li { margin-top: 2px; }
+.autocomplete-list-empty { padding: 10px 12px; color: #9ca3af; font-size: 0.9rem; font-style: italic; }
+
+/* ==========================================================================
+   Phase 4 — Stage 6 Bilingual Consent Workflow
+   ========================================================================== */
+
+/* Inline pending/obtained status row inside the tooth modal's Tx Planned tab */
+.tooth-consent-status {
+margin-top: 12px;
+padding: 10px 12px;
+border-radius: 8px;
+background: #f3f4f6;
+font-size: 0.85rem;
+font-weight: 600;
+display: flex;
+align-items: center;
+justify-content: space-between;
+gap: 10px;
+flex-wrap: wrap;
+}
+.tooth-consent-status.hidden { display: none; }
+.tooth-consent-status.status-pending { background: #fff8e1; color: #92400e; border: 1px solid #ffe082; }
+.tooth-consent-status.status-obtained { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+.tooth-consent-resolve-btn {
+min-height: 36px;
+padding: 0 14px;
+border-radius: 6px;
+border: 1px solid #92400e;
+background: #fff;
+color: #92400e;
+font-weight: 700;
+cursor: pointer;
+touch-action: manipulation;
+}
+.tooth-consent-resolve-btn.hidden { display: none; }
+
+/* Small "Obtain consent this visit / next visit?" prompt — sits above the
+   tooth modal (z-index 9999), so it must be higher still. */
+.consent-prompt-backdrop {
+position: fixed; inset: 0;
+background: rgba(17, 24, 21, 0.5);
+z-index: 10000;
+display: flex; align-items: center; justify-content: center;
+padding: 20px;
+}
+.consent-prompt-backdrop.closed { display: none; }
+.consent-prompt-modal {
+position: relative;
+background: #fff;
+border-radius: 16px;
+max-width: 420px;
+width: 100%;
+padding: 30px 24px 24px;
+text-align: center;
+box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+}
+.consent-prompt-close-btn {
+position: absolute; top: 10px; right: 10px;
+min-width: 40px; min-height: 40px;
+border: none; background: none;
+font-size: 18px; cursor: pointer; color: #6b7280;
+}
+.consent-prompt-icon { font-size: 34px; margin-bottom: 6px; }
+#consent-prompt-title { margin: 0 0 8px; font-size: 1.15rem; }
+.consent-prompt-message { color: #4b5563; line-height: 1.5; margin: 0 0 22px; font-size: 0.95rem; }
+.consent-prompt-actions { display: flex; flex-direction: column; gap: 10px; }
+.consent-prompt-actions .btn { width: 100%; }
+
+/* Full-screen bilingual consent overlay — the highest layer in the app,
+   since it can be triggered from on top of the tooth modal. */
+.consent-overlay-backdrop {
+position: fixed; inset: 0;
+background: #fff;
+z-index: 10500;
+display: flex; flex-direction: column;
+}
+.consent-overlay-backdrop.closed { display: none; }
+.consent-overlay { display: flex; flex-direction: column; height: 100%; max-width: 900px; width: 100%; margin: 0 auto; }
+.consent-overlay-header {
+display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+padding: 18px 20px; border-bottom: 1px solid #e5e7eb;
+}
+.consent-overlay-header h2 { margin: 0 0 4px; font-size: 1.25rem; }
+.consent-overlay-meta { margin: 0; color: #6b7280; font-size: 0.9rem; }
+#consent-overlay-close-btn { min-width: 44px; min-height: 44px; border: none; background: none; font-size: 20px; cursor: pointer; flex-shrink: 0; }
+.consent-overlay-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; max-width: 720px; margin: 0 auto; width: 100%; }
+.consent-lang-block { margin-bottom: 26px; }
+.consent-lang-heading { margin: 0 0 10px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-primary); }
+.consent-text-body { line-height: 1.65; font-size: 0.95rem; background: #f9fafb; border: 1px solid var(--color-border); border-radius: 10px; padding: 14px 16px; }
+.consent-placeholder-banner {
+background: #fef3c7;
+border: 2px solid #f59e0b;
+color: #92400e;
+font-weight: 800;
+padding: 12px 14px;
+border-radius: 10px;
+margin-bottom: 10px;
+text-align: center;
+font-size: 0.95rem;
+letter-spacing: 0.01em;
+}
+.consent-text-placeholder { border-style: dashed; color: #92400e; font-style: italic; background: #fffbeb; }
+.consent-signature-block { margin-top: 8px; }
+.consent-signature-label { display: block; font-weight: 700; margin-bottom: 8px; }
+.consent-overlay-footer { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #e5e7eb; }
+.consent-overlay-footer .btn { flex: 1; }
+
+/* Pending-consent surfacing on the dashboard / patient profile / visit record */
+.pending-consent-tag {
+display: inline-flex; align-items: center; gap: 4px;
+background: #fff3e0; color: #e65100; border: 1px solid #ffcc80;
+border-radius: 12px; padding: 2px 9px; font-size: 0.72rem; font-weight: 800;
+margin-left: 8px; vertical-align: middle; white-space: nowrap;
+}
+.pending-consent-banner {
+background: #fff8e1;
+border: 2px solid #f59e0b;
+border-radius: var(--radius);
+padding: 14px 18px;
+margin-bottom: 16px;
+}
+.pending-consent-banner h3 { margin: 0 0 10px; color: #92400e; font-size: 0.95rem; }
+.pending-consent-item {
+display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+padding: 8px 0; border-bottom: 1px dashed #fcd34d;
+}
+.pending-consent-item:last-child { border-bottom: none; }
+.pending-consent-item-label { color: #92400e; font-size: 0.9rem; }
+.pending-consent-resolve-btn {
+min-height: 40px; padding: 0 16px; border-radius: 8px; border: none;
+background: #92400e; color: #fff; font-weight: 700; cursor: pointer;
+touch-action: manipulation;
+}
+
+/* ==========================================================================
+   v1.0 — Settings / Data Backup & Restore
+   ========================================================================== */
+.settings-card { max-width: 640px; margin: 0 auto; }
+.settings-card-title { margin: 0 0 8px; font-size: 1.1rem; }
+.settings-note { color: #6b7280; font-size: 0.9rem; line-height: 1.55; margin: 0 0 22px; }
+.settings-btn-group { display: flex; flex-direction: column; gap: 12px; }
+.settings-btn {
+display: flex; align-items: center; gap: 12px;
+min-height: 56px; padding: 0 20px;
+border-radius: 12px; border: none;
+font-weight: 700; font-size: 1rem;
+cursor: pointer; touch-action: manipulation;
+width: 100%; text-align: left;
+}
+.settings-btn-icon { font-size: 1.3rem; line-height: 1; }
+.settings-btn-export { background: var(--color-primary); color: #fff; }
+.settings-btn-export:active { background: var(--color-primary-dark); }
+.settings-btn-restore { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.settings-btn-restore:active { background: #fde68a; }
+.settings-status { margin-top: 16px; padding: 12px 16px; border-radius: var(--radius); font-weight: 600; font-size: 0.9rem; }
+.settings-status.hidden { display: none; }
+.settings-status-success { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+.settings-status-error { background: #fdecea; color: var(--color-danger); border: 1px solid #f2b8b5; }
