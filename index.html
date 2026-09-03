@@ -15,15 +15,20 @@
 <button class="brand" id="brand-home-btn" type="button">
 <span class="brand-title">KNHOS Lite</span>
 </button>
+<div class="role-switcher" role="tablist" aria-label="Active role">
+<button type="button" class="role-toggle-btn" data-role="reception">Reception</button>
+<button type="button" class="role-toggle-btn" data-role="doctor">Doctor</button>
+</div>
 </div>
 <nav id="main-nav">
 <button class="nav-btn" data-route="#/home">Home</button>
 <button class="nav-btn" data-route="#/patients">Patients</button>
 <button class="nav-btn" data-route="#/patients/new">New Patient</button>
-<button class="nav-btn" data-route="#/settings">⚙️ Settings</button>
+<button class="nav-btn" data-route="#/settings">Settings</button>
 </nav>
 </div>
 </header>
+<div id="reception-alert-banner" class="reception-alert-banner hidden"></div>
 <div id="dynamic-context-bar" class="context-bar-wrapper"></div>
 <main id="app-main">
 <div id="view-root"></div>
@@ -125,15 +130,11 @@
 <button id="consent-overlay-close-btn" type="button" aria-label="Close">✕</button>
 </div>
 <div class="consent-overlay-body">
-<div class="consent-lang-block">
-<h3 class="consent-lang-heading">English</h3>
-<div id="consent-overlay-text-en" class="consent-text-body"></div>
+<div class="consent-lang-toggle" role="tablist" aria-label="Consent language">
+<button type="button" id="consent-lang-en-btn" class="consent-lang-toggle-btn active" data-lang="en">English</button>
+<button type="button" id="consent-lang-ta-btn" class="consent-lang-toggle-btn" data-lang="ta">Tamil</button>
 </div>
-<div class="consent-lang-block consent-lang-block-ta">
-<h3 class="consent-lang-heading">Tamil (தமிழ்)</h3>
-<div class="consent-placeholder-banner">⚠ PLACEHOLDER — replace with clinic-approved legal text</div>
-<div class="consent-text-body consent-text-placeholder">The official Tamil-language consent text for this procedure has not yet been supplied by the clinic. This section must be replaced with clinic-approved legal text before this form is relied upon for an actual patient signature.</div>
-</div>
+<div id="consent-overlay-text-container" class="consent-text-body"></div>
 <div class="consent-signature-block">
 <label class="consent-signature-label" for="consent-signature-pad">Patient / Guardian Signature *</label>
 <div class="signature-pad-wrapper">
